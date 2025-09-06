@@ -1,9 +1,10 @@
-# Ignore everything except frontend (since rootDirectory is set to frontend)
+# Ignore everything except frontend
 packages/
 backend/
 worker/
 infra/
 package.json
+package-vercel.json
 turbo.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
@@ -12,3 +13,7 @@ docker-compose*.yml
 Dockerfile*
 Makefile
 .dependency-cruiser.js
+
+# But keep frontend files
+!frontend/
+!frontend/**
