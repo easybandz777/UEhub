@@ -1,6 +1,6 @@
 # Fly.io configuration for UE Hub Backend
 
-app = "ue-hub-backend"
+app = "uehub"
 primary_region = "ord"
 
 [build]
