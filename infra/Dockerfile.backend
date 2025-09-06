@@ -20,7 +20,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
-COPY backend/pyproject.toml /app/
+COPY backend/pyproject.toml backend/README.md /app/
 WORKDIR /app
 RUN pip install --upgrade pip setuptools wheel
 RUN pip install .
