@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Button } from '@ue-hub/ui-kit'
+import { Button } from '@/components/ui/button'
 import { 
   Package, 
   GraduationCap, 

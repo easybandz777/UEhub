@@ -3,12 +3,13 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
-  transpilePackages: [
-    '@ue-hub/ui-kit',
-    '@ue-hub/types',
-    '@ue-hub/sdk-js',
-    '@ue-hub/config',
-  ],
+  // Remove transpilePackages for Vercel deployment
+  // transpilePackages: [
+  //   '@ue-hub/ui-kit',
+  //   '@ue-hub/types',
+  //   '@ue-hub/sdk-js',
+  //   '@ue-hub/config',
+  // ],
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'UE Hub',
