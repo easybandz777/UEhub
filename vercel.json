@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "name": "ue-hub-frontend",
+  "buildCommand": "cd frontend && npm ci && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "cd frontend && npm ci",
+  "framework": "nextjs",
+  "functions": {
+    "frontend/src/app/**": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ue-hub-backend.fly.dev/v1/:path*"
+    }
+  ]
+}
