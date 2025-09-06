@@ -5,15 +5,13 @@ Main FastAPI application.
 import logging
 from contextlib import asynccontextmanager
 
-import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 from .core.health import router as health_router
 from .core.settings import get_settings
+from .core.sentry import init_sentry
 from .modules.auth.router import router as auth_router
 
 # Import other module routers as they're created
@@ -31,18 +29,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-# Configure Sentry if DSN is provided
-if settings.app.sentry_dsn:
-    sentry_sdk.init(
-        dsn=settings.app.sentry_dsn,
-        integrations=[
-            FastApiIntegration(auto_enabling=True),
-            SqlalchemyIntegration(),
-        ],
-        traces_sample_rate=0.1,
-        environment=settings.app.environment,
-        release=settings.app.version,
-    )
+# Initialize Sentry for error tracking
+init_sentry()
 
 
 @asynccontextmanager
