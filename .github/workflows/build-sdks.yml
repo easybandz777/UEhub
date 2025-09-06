@@ -1,0 +1,119 @@
+name: Build SDKs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'packages/types/**'
+      - 'packages/sdk-js/**'
+  workflow_dispatch:
+
+jobs:
+  generate-types:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Python dependencies
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -e .
+      
+      - name: Install Node dependencies
+        run: pnpm install
+      
+      - name: Start backend server
+        run: |
+          cd backend
+          python -m uvicorn app.api:app --host 0.0.0.0 --port 8000 &
+          sleep 10
+        env:
+          DATABASE_URL: sqlite:///./test.db
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key-minimum-32-characters-long
+          ENVIRONMENT: development
+      
+      - name: Generate OpenAPI spec
+        run: |
+          curl http://localhost:8000/openapi.json > backend/openapi.json
+      
+      - name: Generate TypeScript types
+        run: |
+          cd packages/types
+          pnpm generate
+      
+      - name: Generate SDK
+        run: |
+          cd packages/sdk-js
+          pnpm generate
+      
+      - name: Build packages
+        run: pnpm build
+      
+      - name: Commit generated files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add packages/types/src/api.ts packages/sdk-js/src/generated/
+          git diff --staged --quiet || git commit -m "chore: update generated types and SDK"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-packages:
+    needs: generate-types
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main  # Get the latest commit with generated files
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build packages
+        run: pnpm build
+      
+      - name: Publish to npm (if version changed)
+        run: |
+          # Check if any package version has changed
+          if git diff HEAD~1 --name-only | grep -E "packages/.*/package.json"; then
+            pnpm changeset publish
+          else
+            echo "No version changes detected, skipping publish"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

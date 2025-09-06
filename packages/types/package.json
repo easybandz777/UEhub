@@ -1,0 +1,24 @@
+{
+  "name": "@ue-hub/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types generated from OpenAPI",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "generate": "openapi-typescript ../backend/openapi.json -o src/api.ts",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "tsup": "^7.2.0",
+    "openapi-typescript": "^6.7.1"
+  }
+}

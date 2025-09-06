@@ -1,0 +1,6 @@
+# Worker dependencies
+rq>=1.15.0
+redis>=5.0.0
+
+# Shared backend dependencies (install backend package)
+-e ../backend
