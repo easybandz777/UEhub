@@ -1,9 +1,9 @@
 {
   "version": 2,
   "name": "ue-hub-frontend",
-  "buildCommand": "cp package-vercel.json package.json && cd frontend && npm install && npm run build",
+  "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "cp package-vercel.json package.json",
+  "installCommand": "echo 'Skipping root install'",
   "rewrites": [
     {
       "source": "/api/:path*",
