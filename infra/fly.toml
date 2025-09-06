@@ -4,7 +4,7 @@ app = "uehub"
 primary_region = "ord"
 
 [build]
-  dockerfile = "infra/Dockerfile.backend"
+  dockerfile = "Dockerfile.backend"
 
 [env]
   ENVIRONMENT = "production"
@@ -29,6 +29,7 @@ primary_region = "ord"
 
 [checks]
   [checks.health]
+    type = "http"
     grace_period = "10s"
     interval = "30s"
     method = "GET"
