@@ -1,9 +1,9 @@
 {
   "version": 2,
   "name": "ue-hub-frontend",
-  "buildCommand": "cd frontend && npm install && npm run build",
+  "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "echo 'Frontend package.json should now be available'",
+  "installCommand": "cd frontend && npm install",
   "rewrites": [
     {
       "source": "/api/:path*",
