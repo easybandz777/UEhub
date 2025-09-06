@@ -155,14 +155,27 @@ class AppSettings(BaseSettings):
 class Settings(BaseSettings):
     """Combined application settings."""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.app = AppSettings()
-        self.database = DatabaseSettings()
-        self.redis = RedisSettings()
-        self.auth = AuthSettings()
-        self.storage = StorageSettings()
-        self.mail = MailSettings()
+    app: AppSettings = Field(default_factory=AppSettings)
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
+    mail: MailSettings = Field(default_factory=MailSettings)
+    
+    # Redis settings with lazy loading to handle connection errors gracefully
+    _redis_settings: Optional[RedisSettings] = None
+
+    @property
+    def redis(self) -> RedisSettings:
+        if self._redis_settings is None:
+            try:
+                self._redis_settings = RedisSettings()
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Could not load Redis settings: {e}. Using default settings.")
+                # Provide a dummy RedisSettings if it fails to load
+                self._redis_settings = RedisSettings(url="redis://localhost:6379/0")
+        return self._redis_settings
     
     class Config:
         env_file = ".env"

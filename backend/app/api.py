@@ -30,7 +30,7 @@ logging.basicConfig(
 )
 
 # Initialize Sentry for error tracking
-init_sentry()
+# init_sentry()  # Temporarily disabled to fix startup issue
 
 
 @asynccontextmanager

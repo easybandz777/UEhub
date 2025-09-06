@@ -4,7 +4,7 @@ app = "uehub"
 primary_region = "ord"
 
 [build]
-  dockerfile = "Dockerfile.backend"
+  dockerfile = "infra/Dockerfile.backend"
 
 [env]
   ENVIRONMENT = "production"
@@ -42,7 +42,7 @@ primary_region = "ord"
   memory_mb = 512
 
 [deploy]
-  release_command = "alembic upgrade head"
+  # release_command = "alembic upgrade head"
 
 [[statics]]
   guest_path = "/app/uploads"

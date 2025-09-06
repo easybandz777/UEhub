@@ -21,7 +21,6 @@ def init_sentry() -> None:
     # Configure integrations
     integrations = [
         FastApiIntegration(
-            auto_enabling_integrations=True,
             transaction_style="endpoint",
         ),
         SqlalchemyIntegration(),
