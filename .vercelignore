@@ -1,20 +1,14 @@
-# Ignore monorepo packages that have workspace dependencies
+# Ignore everything except frontend (since rootDirectory is set to frontend)
 packages/
 backend/
 worker/
 infra/
-
-# Ignore root monorepo files
 package.json
 turbo.json
 pnpm-lock.yaml
 pnpm-workspace.yaml
-
-# Ignore development files
 .env*
 docker-compose*.yml
 Dockerfile*
 Makefile
-
-# Keep only frontend
-!frontend/
+.dependency-cruiser.js
