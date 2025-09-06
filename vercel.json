@@ -1,9 +1,9 @@
 {
   "version": 2,
   "name": "ue-hub-frontend",
-  "buildCommand": "ls -la && ls -la frontend/ && cd frontend && npm install && npm run build",
+  "buildCommand": "pwd && ls -la && test -d frontend && echo 'Frontend dir exists' || echo 'Frontend dir missing' && test -f frontend/package.json && echo 'Package.json exists' || echo 'Package.json missing' && cd frontend && pwd && npm install && npm run build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "echo 'Checking directory structure' && ls -la",
+  "installCommand": "echo 'Starting build process'",
   "rewrites": [
     {
       "source": "/api/:path*",
