@@ -257,10 +257,44 @@ Automatic deployment via GitHub integration.
 
 ### Environment Setup
 
-1. **Database**: Set up Neon Postgres instance
-2. **Redis**: Configure Redis instance
-3. **Storage**: Set up S3 bucket (optional)
-4. **Email**: Configure Resend API key (optional)
+#### 1. **Neon Database Setup**
+
+UE Hub is optimized for Neon Postgres with both traditional connections and REST API support.
+
+**Get your Neon credentials:**
+1. Go to [Neon Console](https://console.neon.tech)
+2. Create a new project or use existing
+3. Copy the connection string from "Connection Details"
+4. Get the REST API endpoint from "Data API" section
+
+**Configure environment variables:**
+```bash
+# Traditional PostgreSQL connection (recommended for development)
+DATABASE_URL=postgresql+asyncpg://username:password@ep-your-endpoint.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# REST API (optional - for serverless functions)
+NEON_API_ENDPOINT=https://ep-your-endpoint.apirest.c-2.us-east-1.aws.neon.tech/neondb/rest/v1
+NEON_API_KEY=your-neon-api-key
+```
+
+**Setup commands:**
+```bash
+# Test Neon connection
+make test-neon
+
+# Set up extensions and optimize settings
+make setup-neon
+
+# Run migrations
+make migrate
+
+# Seed initial data
+make seed
+```
+
+#### 2. **Redis**: Configure Redis instance (Upstash recommended)
+#### 3. **Storage**: Set up S3 bucket (optional)
+#### 4. **Email**: Configure Resend API key (optional)
 
 ## Troubleshooting
 

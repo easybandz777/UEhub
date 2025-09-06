@@ -17,6 +17,10 @@ class DatabaseSettings(BaseSettings):
     pool_size: int = Field(10, env="DATABASE_POOL_SIZE")
     max_overflow: int = Field(20, env="DATABASE_MAX_OVERFLOW")
     
+    # Neon-specific settings
+    neon_api_endpoint: Optional[str] = Field(None, env="NEON_API_ENDPOINT")
+    neon_api_key: Optional[str] = Field(None, env="NEON_API_KEY")
+    
     class Config:
         env_prefix = "DATABASE_"
 

@@ -39,18 +39,21 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://uehub:uehub_dev_password@postgres:5432/uehub
+      # Use Neon database in development (comment out to use local postgres)
+      - DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+      # - DATABASE_URL=postgresql+asyncpg://uehub:uehub_dev_password@postgres:5432/uehub  # Local postgres
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=dev-secret-key-change-in-production-minimum-32-chars
       - ENVIRONMENT=development
       - DEBUG=true
       - LOG_LEVEL=DEBUG
+      - NEON_API_ENDPOINT=https://ep-odd-tree-adxsa81s.apirest.c-2.us-east-1.aws.neon.tech/neondb/rest/v1
     volumes:
       - ../backend:/app
       - backend_uploads:/app/uploads
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:  # Comment out when using Neon
+      #   condition: service_healthy
       redis:
         condition: service_healthy
     command: ["python", "-m", "uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -60,17 +63,19 @@ services:
       context: ..
       dockerfile: infra/Dockerfile.backend
     environment:
-      - DATABASE_URL=postgresql+asyncpg://uehub:uehub_dev_password@postgres:5432/uehub
+      # Use Neon database in development
+      - DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=dev-secret-key-change-in-production-minimum-32-chars
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
+      - NEON_API_ENDPOINT=https://ep-odd-tree-adxsa81s.apirest.c-2.us-east-1.aws.neon.tech/neondb/rest/v1
     volumes:
       - ../worker:/app/worker
       - backend_uploads:/app/uploads
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:  # Comment out when using Neon
+      #   condition: service_healthy
       redis:
         condition: service_healthy
     command: ["python", "-m", "worker.main"]

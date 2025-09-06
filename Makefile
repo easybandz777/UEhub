@@ -56,6 +56,13 @@ migrate-rollback:
 seed:
 	cd backend && python -m app.scripts.seed
 
+# Neon Database
+setup-neon:
+	cd backend && python -m app.scripts.setup_neon
+
+test-neon:
+	cd backend && python -c "import asyncio; from app.scripts.setup_neon import test_neon_connection; asyncio.run(test_neon_connection())"
+
 # SDK Generation
 sdk:
 	cd backend && python -m app.scripts.generate_sdk
