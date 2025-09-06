@@ -28,7 +28,7 @@ class DatabaseSettings(BaseSettings):
 class RedisSettings(BaseSettings):
     """Redis configuration."""
     
-    url: str = Field(..., env="REDIS_URL")
+    url: str = Field("redis://localhost:6379/0", env="REDIS_URL")
     db: int = Field(0, env="REDIS_DB")
     max_connections: int = Field(10, env="REDIS_MAX_CONNECTIONS")
     
