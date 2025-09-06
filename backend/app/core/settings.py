@@ -155,12 +155,14 @@ class AppSettings(BaseSettings):
 class Settings(BaseSettings):
     """Combined application settings."""
     
-    app: AppSettings = AppSettings()
-    database: DatabaseSettings = DatabaseSettings()
-    redis: RedisSettings = RedisSettings()
-    auth: AuthSettings = AuthSettings()
-    storage: StorageSettings = StorageSettings()
-    mail: MailSettings = MailSettings()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.app = AppSettings()
+        self.database = DatabaseSettings()
+        self.redis = RedisSettings()
+        self.auth = AuthSettings()
+        self.storage = StorageSettings()
+        self.mail = MailSettings()
     
     class Config:
         env_file = ".env"
