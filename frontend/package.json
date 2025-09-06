@@ -11,7 +11,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "type-check": "tsc --noEmit",
-    "generate-types": "pnpm --filter @ue-hub/types generate"
+    "generate-types": "echo 'Types generation skipped in standalone mode'"
   },
   "dependencies": {
     "next": "^14.0.3",
@@ -45,14 +45,12 @@
     "postcss": "^8.4.31",
     "eslint": "^8.53.0",
     "eslint-config-next": "^14.0.3",
-    "@ue-hub/eslint-config": "workspace:*",
     "jest": "^29.7.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/jest-dom": "^6.1.4",
     "jest-environment-jsdom": "^29.7.0"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=18.0.0"
   }
 }
