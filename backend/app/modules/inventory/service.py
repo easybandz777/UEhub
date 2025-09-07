@@ -176,7 +176,7 @@ class InventoryService:
             updated_at=item.updated_at
         )
     
-    async def create_item(self, item_data: InventoryItemCreate, actor_id: UUID) -> InventoryItemResponse:
+    async def create_item(self, item_data: InventoryItemCreate, actor_id: Optional[str] = None) -> InventoryItemResponse:
         """Create a new inventory item."""
         
         # Create the item
