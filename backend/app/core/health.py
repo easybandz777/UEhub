@@ -211,3 +211,44 @@ async def readiness_check(
 async def liveness_check():
     """Kubernetes liveness probe endpoint."""
     return {"status": "alive"}
+
+
+# Fly.io specific health endpoints
+@router.get("/healthz")
+async def fly_health_check():
+    """Fly.io health check endpoint (liveness)."""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": settings.app.version
+    }
+
+
+@router.get("/readyz")
+async def fly_readiness_check(
+    db: AsyncSession = Depends(get_db)
+):
+    """Fly.io readiness check endpoint."""
+    try:
+        # Check database connectivity
+        db_health = await check_database_health(db)
+        
+        if db_health.status != "healthy":
+            return {
+                "status": "not_ready",
+                "error": db_health.error,
+                "timestamp": datetime.now().isoformat()
+            }, 503
+        
+        return {
+            "status": "ready",
+            "timestamp": datetime.now().isoformat(),
+            "database_response_time_ms": db_health.response_time_ms
+        }
+    
+    except Exception as e:
+        return {
+            "status": "not_ready",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }, 503

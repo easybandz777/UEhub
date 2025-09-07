@@ -9,6 +9,7 @@ from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from .settings import get_settings
 
@@ -34,14 +35,25 @@ elif "postgresql" in database_url:
         }
     }
 
-async_engine = create_async_engine(
-    database_url,
-    echo=settings.database.echo,
-    pool_size=settings.database.pool_size,
-    max_overflow=settings.database.max_overflow,
-    pool_pre_ping=True,
-    connect_args=connect_args,
-)
+# Use NullPool for Neon in production (serverless-friendly)
+if settings.app.environment == "production" and "neon" in database_url:
+    async_engine = create_async_engine(
+        database_url,
+        echo=settings.database.echo,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        connect_args=connect_args,
+    )
+else:
+    # Use regular pooling for development
+    async_engine = create_async_engine(
+        database_url,
+        echo=settings.database.echo,
+        pool_size=settings.database.pool_size,
+        max_overflow=settings.database.max_overflow,
+        pool_pre_ping=True,
+        connect_args=connect_args,
+    )
 
 # Create sync engine for Alembic
 sync_database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
@@ -56,14 +68,24 @@ elif "postgresql" in sync_database_url:
         "options": "-c jit=off"
     }
 
-sync_engine = create_engine(
-    sync_database_url,
-    echo=settings.database.echo,
-    pool_size=settings.database.pool_size,
-    max_overflow=settings.database.max_overflow,
-    pool_pre_ping=True,
-    connect_args=sync_connect_args,
-)
+# Use NullPool for sync engine in production too
+if settings.app.environment == "production" and "neon" in sync_database_url:
+    sync_engine = create_engine(
+        sync_database_url,
+        echo=settings.database.echo,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        connect_args=sync_connect_args,
+    )
+else:
+    sync_engine = create_engine(
+        sync_database_url,
+        echo=settings.database.echo,
+        pool_size=settings.database.pool_size,
+        max_overflow=settings.database.max_overflow,
+        pool_pre_ping=True,
+        connect_args=sync_connect_args,
+    )
 
 # Session makers
 AsyncSessionLocal = async_sessionmaker(

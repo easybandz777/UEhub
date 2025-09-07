@@ -19,8 +19,8 @@ os.environ.update({
 
 print("🚀 Starting UE Hub Backend...")
 print("📊 Environment variables set")
-print("🔗 Will be available at: http://localhost:8000")
-print("📋 API docs at: http://localhost:8000/docs")
+print("🔗 Will be available at: http://localhost:8080")
+print("📋 API docs at: http://localhost:8080/docs")
 
 try:
     # Start uvicorn
@@ -28,7 +28,7 @@ try:
         sys.executable, "-m", "uvicorn", 
         "app.api:app",
         "--host", "0.0.0.0",
-        "--port", "8000", 
+        "--port", "8080", 
         "--reload",
         "--log-level", "info"
     ], check=True)

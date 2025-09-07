@@ -112,7 +112,8 @@ class AppSettings(BaseSettings):
     # API settings
     api_prefix: str = Field("/v1", env="API_PREFIX")
     cors_origins: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:3001", "https://u-ehub-k95jceeg7-william-tyler-beltzs-projects.vercel.app", "*"]
+        default=["*"],  # Allow all origins for now to fix CORS issues
+        env="CORS_ORIGINS"
     )
     
     # Security
@@ -129,6 +130,14 @@ class AppSettings(BaseSettings):
     @validator("cors_origins", pre=True)
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
+            # Handle JSON array format from environment variables
+            if v.startswith('[') and v.endswith(']'):
+                import json
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # Handle comma-separated format
             return [origin.strip() for origin in v.split(",")]
         return v
     

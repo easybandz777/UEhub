@@ -98,9 +98,9 @@ class SafetyService:
     
     async def list_checklists(
         self,
+        current_user: CurrentUser,
         page: int = 1,
         per_page: int = 50,
-        current_user: CurrentUser,
         project_name: Optional[str] = None,
         location: Optional[str] = None,
         status_filter: Optional[str] = None,

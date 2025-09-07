@@ -13,21 +13,7 @@ from sqlalchemy.future import select
 from ...core.db import Base
 from ...core.interfaces import UserRepository
 from ...core.security import get_password_hash, verify_password
-
-
-class User(Base):
-    """User model."""
-    
-    __tablename__ = "auth_user"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    name = Column(String(100), nullable=False)
-    role = Column(String(20), nullable=False, default="worker")
-    password_hash = Column(String(255), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+from .models import User
 
 
 class AuthRepository:

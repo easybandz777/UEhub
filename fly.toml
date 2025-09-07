@@ -13,7 +13,7 @@ primary_region = "ord"
   ENABLE_DOCS = "false"
 
 [http_service]
-  internal_port = 8000
+  internal_port = 8080
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
@@ -25,7 +25,7 @@ primary_region = "ord"
     interval = "30s"
     method = "GET"
     timeout = "5s"
-    path = "/health"
+    path = "/healthz"
 
 [checks]
   [checks.health]
@@ -34,7 +34,15 @@ primary_region = "ord"
     interval = "30s"
     method = "GET"
     timeout = "5s"
-    path = "/health"
+    path = "/healthz"
+  
+  [checks.readiness]
+    type = "http"
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/readyz"
 
 [[vm]]
   cpu_kind = "shared"
