@@ -187,7 +187,7 @@ export class ApiClient {
       xhr.open(method, url, true)
 
       // Set headers
-      const headers = {
+      const headers: Record<string, string> = {
         'Accept': 'application/json',
         ...options.headers
       }
