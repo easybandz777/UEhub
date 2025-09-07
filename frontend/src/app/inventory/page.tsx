@@ -13,7 +13,7 @@ import {
   Download,
   Upload
 } from 'lucide-react'
-import apiClient, { InventoryItem, InventoryStats } from '../../lib/api'
+import { apiClient, InventoryItem, InventoryStats } from '../../lib/api'
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([])

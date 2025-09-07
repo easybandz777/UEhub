@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth, useRole, withAuth } from '@/components/auth/AuthProvider'
 import { apiClient, SafetyChecklist } from '@/lib/api'
@@ -41,9 +41,9 @@ function ChecklistViewPage() {
     if (checklistId) {
       loadChecklist()
     }
-  }, [checklistId])
+  }, [checklistId, loadChecklist])
 
-  const loadChecklist = async () => {
+  const loadChecklist = useCallback(async () => {
     try {
       setIsLoading(true)
       const data = await apiClient.getSafetyChecklist(checklistId)
@@ -53,7 +53,7 @@ function ChecklistViewPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [checklistId])
 
   const handleApproval = async (approved: boolean) => {
     if (!checklist) return

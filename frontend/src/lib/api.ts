@@ -1,5 +1,3 @@
-import { z } from 'zod'
-
 const DIRECT_API_URL = 'https://uehub.fly.dev/v1'
 
 // Types
@@ -47,6 +45,15 @@ export interface InventoryItem {
   supplier?: string
   created_at: string
   updated_at: string
+}
+
+export interface InventoryStats {
+  total_items: number
+  total_value: number
+  low_stock_items: number
+  categories: number
+  locations: number
+  recent_activity: any[]
 }
 
 export interface SafetyChecklist {

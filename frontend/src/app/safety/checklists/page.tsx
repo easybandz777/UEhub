@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useAuth, useRole, withAuth } from '@/components/auth/AuthProvider'
 import { apiClient, SafetyChecklist } from '@/lib/api'
 import { 
@@ -29,9 +29,9 @@ function SafetyChecklistsPage() {
 
   useEffect(() => {
     loadChecklists()
-  }, [searchTerm, statusFilter])
+  }, [loadChecklists])
 
-  const loadChecklists = async () => {
+  const loadChecklists = useCallback(async () => {
     try {
       setIsLoading(true)
       const params: any = {
@@ -54,7 +54,7 @@ function SafetyChecklistsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [searchTerm, statusFilter])
 
   const handleDelete = async (checklistId: string) => {
     if (!confirm('Are you sure you want to delete this checklist?')) {
