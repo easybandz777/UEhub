@@ -89,6 +89,17 @@ async def test_no_auth():
     """Test endpoint with no authentication."""
     return {"message": "This endpoint works without auth", "status": "success"}
 
+# NUCLEAR TEST - Direct inventory endpoint outside /v1/ prefix
+@app.get("/direct-inventory-test")
+async def direct_inventory_test():
+    """Direct inventory test bypassing all middleware."""
+    return {
+        "message": "Direct inventory test",
+        "items": [],
+        "total": 0,
+        "status": "working"
+    }
+
 # Include routers
 app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
