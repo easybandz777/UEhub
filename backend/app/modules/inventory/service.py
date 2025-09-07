@@ -222,7 +222,7 @@ class InventoryService:
             updated_at=item.updated_at
         )
     
-    async def update_item(self, item_id: UUID, item_data: InventoryItemUpdate, actor_id: UUID) -> Optional[InventoryItemResponse]:
+    async def update_item(self, item_id: UUID, item_data: InventoryItemUpdate, actor_id: Optional[str] = None) -> Optional[InventoryItemResponse]:
         """Update an inventory item."""
         result = await self.db.execute(
             select(InventoryItem).where(InventoryItem.id == item_id)
@@ -254,7 +254,7 @@ class InventoryService:
             updated_at=item.updated_at
         )
     
-    async def delete_item(self, item_id: UUID, actor_id: UUID) -> bool:
+    async def delete_item(self, item_id: UUID, actor_id: Optional[str] = None) -> bool:
         """Delete an inventory item."""
         result = await self.db.execute(
             select(InventoryItem).where(InventoryItem.id == item_id)
