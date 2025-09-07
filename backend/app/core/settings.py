@@ -112,8 +112,7 @@ class AppSettings(BaseSettings):
     # API settings
     api_prefix: str = Field("/v1", env="API_PREFIX")
     cors_origins: List[str] = Field(
-        ["http://localhost:3000"], 
-        env="CORS_ORIGINS"
+        default=["http://localhost:3000", "http://localhost:3001", "https://u-ehub-k95jceeg7-william-tyler-beltzs-projects.vercel.app", "*"]
     )
     
     # Security
@@ -178,7 +177,7 @@ class Settings(BaseSettings):
         return self._redis_settings
     
     class Config:
-        env_file = ".env"
+        env_file = [".env.dev", ".env.local", ".env"]  # Try multiple files in order
         env_file_encoding = "utf-8"
 
 

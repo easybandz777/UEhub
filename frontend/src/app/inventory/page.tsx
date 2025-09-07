@@ -17,7 +17,13 @@ import apiClient, { InventoryItem, InventoryStats } from '../../lib/api'
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([])
-  const [stats, setStats] = useState<InventoryStats | null>(null)
+  const [stats, setStats] = useState<InventoryStats | null>({
+    total_items: 0,
+    total_value: 0,
+    low_stock_count: 0,
+    out_of_stock_count: 0,
+    recent_movements: 0
+  })
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
@@ -33,6 +39,11 @@ export default function InventoryPage() {
 
   // Load data from API
   useEffect(() => {
+    // Clear any cached data immediately
+    localStorage.removeItem('inventory-items')
+    localStorage.removeItem('inventory-stats')
+    localStorage.clear()
+    
     loadInventoryData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -40,7 +51,7 @@ export default function InventoryPage() {
     try {
       setLoading(true)
       
-      // Load inventory items and stats
+      // Try to load from API first
       const [inventoryResponse, statsResponse] = await Promise.all([
         apiClient.getInventoryItems({ search: searchTerm }),
         apiClient.getInventoryStats()
@@ -48,29 +59,23 @@ export default function InventoryPage() {
       
       setItems(inventoryResponse.items)
       setStats(statsResponse)
+      console.log('✅ Connected to real backend API!')
     } catch (error) {
-      console.error('Failed to load inventory data:', error)
-      // Show mock data as fallback
-      setItems([
-        {
-          id: '1',
-          sku: 'DRILL-001',
-          name: 'DeWalt 20V Max Cordless Drill',
-          location: 'Warehouse A - Shelf 3',
-          qty: 5,
-          min_qty: 3,
-          barcode: '123456789012',
-          is_low_stock: false,
-          updated_at: '2024-01-15T10:30:00Z'
-        }
-      ])
+      console.error('API failed, showing empty inventory:', error)
+      
+      // ALWAYS show empty inventory when API fails - no localStorage fallback
+      setItems([])
       setStats({
-        total_items: 1,
+        total_items: 0,
         total_value: 0,
         low_stock_count: 0,
         out_of_stock_count: 0,
         recent_movements: 0
       })
+      
+      // Clear any existing localStorage to prevent future issues
+      localStorage.removeItem('inventory-items')
+      localStorage.removeItem('inventory-stats')
     } finally {
       setLoading(false)
     }

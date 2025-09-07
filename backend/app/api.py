@@ -100,43 +100,7 @@ async def direct_inventory_test():
         "status": "working"
     }
 
-# MINIMAL WORKING INVENTORY API - Bypass all routers
-@app.get("/v1/inventory")
-async def minimal_inventory_list():
-    """Minimal inventory list endpoint."""
-    return {
-        "items": [],
-        "total": 0,
-        "page": 1,
-        "per_page": 50,
-        "pages": 1
-    }
-
-@app.get("/v1/inventory/stats") 
-async def minimal_inventory_stats():
-    """Minimal inventory stats endpoint."""
-    return {
-        "total_items": 0,
-        "total_value": 0,
-        "low_stock_count": 0,
-        "out_of_stock_count": 0,
-        "recent_movements": 0
-    }
-
-@app.post("/v1/inventory")
-async def minimal_create_item():
-    """Minimal create item endpoint - just returns success for now."""
-    return {
-        "id": "test-123",
-        "sku": "TEST-001", 
-        "name": "Test Item",
-        "location": "Test Location",
-        "barcode": "123456789",
-        "qty": 1,
-        "min_qty": 1,
-        "is_low_stock": False,
-        "updated_at": "2025-01-09T22:00:00Z"
-    }
+# REMOVED MINIMAL ENDPOINTS - Now using real database-connected inventory router
 
 # Include routers
 app.include_router(health_router, tags=["health"])
@@ -146,7 +110,7 @@ app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=[
 app.include_router(test_router, prefix="/nuclear", tags=["nuclear-test"])
 
 # Include other module routers as they're created
-# app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])  # DISABLED - Using minimal endpoints above
+app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])  # RE-ENABLED!
 # app.include_router(training_router, prefix=f"{settings.app.api_prefix}/training", tags=["training"])
 # app.include_router(certs_router, prefix=f"{settings.app.api_prefix}/certs", tags=["certificates"])
 # app.include_router(reporting_router, prefix=f"{settings.app.api_prefix}/reports", tags=["reporting"])

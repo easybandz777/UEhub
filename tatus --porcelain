@@ -1,0 +1,5 @@
+[33mcb475f4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m FINAL FIX: Disable inventory router, use minimal endpoints
+[33ma296d9f[m CRITICAL FIX: Add minimal working inventory endpoints
+[33me9e5366[m Add direct inventory test endpoint outside /v1/ prefix
+[33mb1ffb1d[m FIX: Properly handle headers in API client
+[33m06a9375[m CRITICAL FIX: Frontend TypeScript build errors

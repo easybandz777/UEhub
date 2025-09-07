@@ -1,0 +1,4 @@
+[33mc876242[m Add comprehensive Sentry error tracking setup for frontend and backend
+[33mfe9a107[m Remove all workspace references for Vercel compatibility
+[33m40e929a[m Fix Vercel deployment issues
+[33madcec0b[m Initial commit: Complete UE Hub monorepo implementation

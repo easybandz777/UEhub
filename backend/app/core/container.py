@@ -39,9 +39,15 @@ class Container:
     def cache_service(self) -> CacheService:
         """Get cache service adapter."""
         if self._cache_service is None:
-            from ..adapters.cache_redis import RedisCacheService
-            self._cache_service = RedisCacheService(settings.redis.url)
-            logger.info("Initialized Redis cache service")
+            try:
+                from ..adapters.cache_redis import RedisCacheService
+                self._cache_service = RedisCacheService(settings.redis.url)
+                logger.info("Initialized Redis cache service")
+            except Exception as e:
+                logger.warning(f"Redis cache service failed to initialize: {e}. Using dummy cache.")
+                # Create a dummy cache service that doesn't actually cache
+                from ..adapters.cache_dummy import DummyCacheService
+                self._cache_service = DummyCacheService()
         return self._cache_service
     
     @property
@@ -107,9 +113,15 @@ class Container:
     def queue_service(self) -> QueueService:
         """Get queue service adapter."""
         if self._queue_service is None:
-            from ..adapters.queue_rq import RQQueueService
-            self._queue_service = RQQueueService(settings.redis.url)
-            logger.info("Initialized RQ queue service")
+            try:
+                from ..adapters.queue_rq import RQQueueService
+                self._queue_service = RQQueueService(settings.redis.url)
+                logger.info("Initialized RQ queue service")
+            except Exception as e:
+                logger.warning(f"RQ queue service failed to initialize: {e}. Using dummy queue.")
+                # Create a dummy queue service for development
+                from ..adapters.queue_dummy import DummyQueueService
+                self._queue_service = DummyQueueService()
         return self._queue_service
     
     @property
