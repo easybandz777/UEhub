@@ -25,10 +25,7 @@ if "postgresql" in database_url and "neon" in database_url:
         database_url = database_url.split("?")[0]  # Remove query parameters
     
     connect_args = {
-        "ssl": "require",
-        "server_settings": {
-            "jit": "off"
-        }
+        "ssl": "require"
     }
 elif "postgresql" in database_url:
     connect_args = {
@@ -52,8 +49,7 @@ sync_connect_args = {}
 
 if "postgresql" in sync_database_url and "neon" in sync_database_url:
     sync_connect_args = {
-        "sslmode": "require",
-        "options": "-c jit=off"
+        "sslmode": "require"
     }
 elif "postgresql" in sync_database_url:
     sync_connect_args = {
