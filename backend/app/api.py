@@ -15,7 +15,7 @@ from .core.sentry import init_sentry
 from .modules.auth.router import router as auth_router
 
 # Import other module routers as they're created
-# from .modules.inventory.router import router as inventory_router
+from .modules.inventory.router import router as inventory_router
 # from .modules.training.router import router as training_router
 # from .modules.certs.router import router as certs_router
 # from .modules.reporting.router import router as reporting_router
@@ -87,7 +87,7 @@ app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
 
 # Include other module routers as they're created
-# app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
+app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
 # app.include_router(training_router, prefix=f"{settings.app.api_prefix}/training", tags=["training"])
 # app.include_router(certs_router, prefix=f"{settings.app.api_prefix}/certs", tags=["certificates"])
 # app.include_router(reporting_router, prefix=f"{settings.app.api_prefix}/reports", tags=["reporting"])

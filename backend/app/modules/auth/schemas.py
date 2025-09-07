@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     """Base user schema."""
     email: EmailStr
     name: str = Field(..., min_length=1, max_length=100)
-    role: str = Field(..., regex="^(admin|manager|worker)$")
+    role: str = Field(..., pattern="^(admin|manager|worker)$")
 
 
 class UserCreate(UserBase):
@@ -33,7 +33,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """User update schema."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    role: Optional[str] = Field(None, regex="^(admin|manager|worker)$")
+    role: Optional[str] = Field(None, pattern="^(admin|manager|worker)$")
     is_active: Optional[bool] = None
 
 
