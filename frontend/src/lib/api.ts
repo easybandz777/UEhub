@@ -68,7 +68,7 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}/v1${endpoint}`
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers,
     }

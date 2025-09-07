@@ -34,7 +34,7 @@ export default function InventoryPage() {
   // Load data from API
   useEffect(() => {
     loadInventoryData()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadInventoryData = async () => {
     try {
