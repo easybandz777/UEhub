@@ -2,7 +2,7 @@
  * API client for UE Hub backend
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://uehub.fly.dev'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 export interface InventoryItem {
   id: string
@@ -66,7 +66,7 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}/v1${endpoint}`
+    const url = `${this.baseUrl}${endpoint}`
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
