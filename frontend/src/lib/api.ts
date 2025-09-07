@@ -42,6 +42,15 @@ export interface InventoryItem {
   updated_at: string
 }
 
+export interface InventoryItemCreate {
+  sku: string
+  name: string
+  location: string
+  barcode?: string
+  min_qty: number
+  qty: number
+}
+
 export interface InventoryStats {
   total_items: number
   total_value: number
@@ -284,7 +293,7 @@ export class ApiClient {
   }
 
   // Inventory methods (existing)
-  async createInventoryItem(item: Omit<InventoryItem, 'id' | 'created_at' | 'updated_at'>): Promise<InventoryItem> {
+  async createInventoryItem(item: InventoryItemCreate): Promise<InventoryItem> {
     return this.xhrRequest<InventoryItem>('/inventory/', {
       method: 'POST',
       body: JSON.stringify(item)
