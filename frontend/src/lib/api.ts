@@ -32,18 +32,13 @@ export interface LoginResponse {
 
 export interface InventoryItem {
   id: string
+  sku: string
   name: string
-  description?: string
-  category: string
-  quantity: number
-  unit: string
-  location?: string
+  location: string
   barcode?: string
-  min_stock?: number
-  max_stock?: number
-  cost?: number
-  supplier?: string
-  created_at: string
+  min_qty: number
+  qty: number
+  is_low_stock: boolean
   updated_at: string
 }
 
