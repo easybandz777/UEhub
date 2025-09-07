@@ -2,21 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "distDir": ".next"
-      }
+      "src": "frontend/next.config.js",
+      "use": "@vercel/next"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://uehub.fly.dev/v1/:path*"
+      "src": "/api/(.*)",
+      "dest": "https://uehub.fly.dev/v1/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ]
 }
