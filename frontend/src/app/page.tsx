@@ -75,8 +75,14 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-gray-900">UE Hub</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="ghost">Sign In</Button>
+              <Link href="/inventory">
+                <Button variant="ghost">Inventory</Button>
+              </Link>
+              <Link href="/training">
+                <Button variant="ghost">Training</Button>
+              </Link>
+              <Link href="/reports">
+                <Button variant="ghost">Reports</Button>
               </Link>
               <Link href="/dashboard">
                 <Button>Dashboard</Button>
@@ -93,25 +99,25 @@ export default function HomePage() {
             isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
           }`}>
             <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
-              <span className="block">Upper Echelon</span>
+              <span className="block">Welcome to</span>
               <span className="block gradient-bg bg-clip-text text-transparent">
-                Hub System
+                UE Hub
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto text-balance">
-              Streamline your inventory management and OSHA training with our 
-              comprehensive, modular platform designed for operational excellence.
+              Your central hub for inventory management, OSHA training, and operational tools.
+              Everything you need to keep your operations running smoothly.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard">
+              <Link href="/inventory">
                 <Button size="lg" className="group">
-                  Get Started
+                  Manage Inventory
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
-              <Link href="/demo">
+              <Link href="/training">
                 <Button variant="outline" size="lg">
-                  View Demo
+                  View Training
                 </Button>
               </Link>
             </div>
