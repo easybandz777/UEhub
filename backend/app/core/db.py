@@ -14,22 +14,39 @@ from .settings import get_settings
 
 settings = get_settings()
 
-# Create async engine
+# Create async engine with SSL configuration
+connect_args = {}
+if "postgresql" in settings.database.url:
+    # Add SSL configuration for PostgreSQL
+    connect_args = {
+        "server_settings": {
+            "jit": "off"
+        }
+    }
+
 async_engine = create_async_engine(
     settings.database.url,
     echo=settings.database.echo,
     pool_size=settings.database.pool_size,
     max_overflow=settings.database.max_overflow,
     pool_pre_ping=True,
+    connect_args=connect_args,
 )
 
 # Create sync engine for Alembic
+sync_connect_args = {}
+if "postgresql" in settings.database.url:
+    sync_connect_args = {
+        "options": "-c jit=off"
+    }
+
 sync_engine = create_engine(
     settings.database.url.replace("postgresql+asyncpg://", "postgresql://"),
     echo=settings.database.echo,
     pool_size=settings.database.pool_size,
     max_overflow=settings.database.max_overflow,
     pool_pre_ping=True,
+    connect_args=sync_connect_args,
 )
 
 # Session makers
