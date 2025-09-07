@@ -20,6 +20,7 @@ from .schemas import (
     UserListResponse,
     UserResponse,
     UserUpdate,
+    UserProfile,
 )
 
 settings = get_settings()
@@ -115,6 +116,23 @@ class AuthService:
             return None
         return UserResponse.from_orm(user)
     
+    async def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
+        """Get extended user profile by ID."""
+        user = await self.repository.get(user_id)
+        if not user:
+            return None
+        
+        # Get additional profile data
+        profile_data = UserResponse.from_orm(user).dict()
+        profile_data.update({
+            "last_login": None,  # TODO: Implement last login tracking
+            "login_count": 0,    # TODO: Implement login count tracking
+            "created_checklists": 0,  # TODO: Get from safety module
+            "approved_checklists": 0  # TODO: Get from safety module
+        })
+        
+        return UserProfile(**profile_data)
+    
     async def get_user_by_email(self, email: str) -> Optional[UserResponse]:
         """Get a user by email."""
         user = await self.repository.get_by_email(email)
@@ -197,7 +215,7 @@ class AuthService:
     async def update_user(self, user_id: str, user_data: UserUpdate) -> Optional[UserResponse]:
         """Update a user."""
         # Check if email is being changed and already exists
-        if user_data.email:
+        if hasattr(user_data, 'email') and user_data.email:
             existing_user = await self.repository.get_by_email(user_data.email)
             if existing_user and existing_user.id != user_id:
                 raise HTTPException(

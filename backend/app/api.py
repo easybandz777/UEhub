@@ -13,10 +13,11 @@ from .core.health import router as health_router
 from .core.settings import get_settings
 from .core.sentry import init_sentry
 from .modules.auth.router import router as auth_router
+from .modules.inventory.router import router as inventory_router
+from .modules.safety.router import router as safety_router
+from .test_router import test_router
 
 # Import other module routers as they're created
-from .modules.inventory.router import router as inventory_router
-from .test_router import test_router
 # from .modules.training.router import router as training_router
 # from .modules.certs.router import router as certs_router
 # from .modules.reporting.router import router as reporting_router
@@ -100,17 +101,16 @@ async def direct_inventory_test():
         "status": "working"
     }
 
-# REMOVED MINIMAL ENDPOINTS - Now using real database-connected inventory router
-
 # Include routers
 app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
+app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
+app.include_router(safety_router, prefix=f"{settings.app.api_prefix}/safety", tags=["safety"])
 
 # NUCLEAR TEST ROUTER - NO DEPENDENCIES
 app.include_router(test_router, prefix="/nuclear", tags=["nuclear-test"])
 
 # Include other module routers as they're created
-app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])  # RE-ENABLED!
 # app.include_router(training_router, prefix=f"{settings.app.api_prefix}/training", tags=["training"])
 # app.include_router(certs_router, prefix=f"{settings.app.api_prefix}/certs", tags=["certificates"])
 # app.include_router(reporting_router, prefix=f"{settings.app.api_prefix}/reports", tags=["reporting"])

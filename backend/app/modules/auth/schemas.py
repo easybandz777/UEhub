@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     """Base user schema."""
     email: EmailStr
     name: str = Field(..., min_length=1, max_length=100)
-    role: str = Field(..., pattern="^(admin|manager|worker)$")
+    role: str = Field(..., pattern="^(superadmin|admin|employee)$")
 
 
 class UserCreate(UserBase):
@@ -30,10 +30,27 @@ class UserCreate(UserBase):
         return v
 
 
+class UserRegister(BaseModel):
+    """User registration schema (public endpoint)."""
+    email: EmailStr
+    name: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=8, max_length=100)
+    
+    @validator("password")
+    def validate_password(cls, v):
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
+
+
 class UserUpdate(BaseModel):
     """User update schema."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    role: Optional[str] = Field(None, pattern="^(admin|manager|worker)$")
+    role: Optional[str] = Field(None, pattern="^(superadmin|admin|employee)$")
     is_active: Optional[bool] = None
 
 
@@ -119,3 +136,18 @@ class UserListResponse(BaseModel):
     page: int
     per_page: int
     pages: int
+
+
+class RolePermissions(BaseModel):
+    """Role permissions schema."""
+    role: str
+    permissions: list[str]
+    description: str
+
+
+class UserProfile(UserResponse):
+    """Extended user profile schema."""
+    last_login: Optional[datetime] = None
+    login_count: int = 0
+    created_checklists: int = 0
+    approved_checklists: int = 0

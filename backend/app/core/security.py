@@ -28,6 +28,7 @@ class TokenData(BaseModel):
     email: str
     role: str
     exp: datetime
+    payload: dict = {}
 
 
 class CurrentUser(BaseModel):
@@ -105,7 +106,8 @@ def verify_token(token: str) -> TokenData:
             user_id=user_id,
             email=email,
             role=role,
-            exp=datetime.fromtimestamp(exp)
+            exp=datetime.fromtimestamp(exp),
+            payload=payload
         )
     
     except JWTError:
@@ -157,7 +159,17 @@ def require_roles(*required_roles: str):
     return role_checker
 
 
-# Role-based dependencies
+# New role-based dependencies for updated system
+def require_superadmin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """Require superadmin role."""
+    if current_user.role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin access required"
+        )
+    return current_user
+
+
 def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     """Require admin role."""
     if current_user.role != "admin":
@@ -168,12 +180,22 @@ def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> Curr
     return current_user
 
 
-def require_manager_or_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
-    """Require manager or admin role."""
-    if current_user.role not in ["manager", "admin"]:
+def require_admin_or_superadmin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """Require admin or superadmin role."""
+    if current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Manager or admin access required"
+            detail="Admin or superadmin access required"
+        )
+    return current_user
+
+
+def require_employee_or_higher(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """Require employee, admin, or superadmin role."""
+    if current_user.role not in ["employee", "admin", "superadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Employee access or higher required"
         )
     return current_user
 
@@ -181,6 +203,12 @@ def require_manager_or_admin(current_user: CurrentUser = Depends(get_current_use
 def require_authenticated(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     """Require any authenticated user."""
     return current_user
+
+
+# Legacy compatibility functions (for existing code)
+def require_manager_or_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """Legacy: Require admin or superadmin role."""
+    return require_admin_or_superadmin(current_user)
 
 
 # Permission system
@@ -192,12 +220,22 @@ class Permission:
     UPDATE_USER = "user:update"
     DELETE_USER = "user:delete"
     VIEW_USER = "user:view"
+    MANAGE_ROLES = "user:manage_roles"
     
     # Inventory management
     CREATE_INVENTORY = "inventory:create"
     UPDATE_INVENTORY = "inventory:update"
     DELETE_INVENTORY = "inventory:delete"
     VIEW_INVENTORY = "inventory:view"
+    
+    # Safety checklist management
+    CREATE_CHECKLIST = "safety:create_checklist"
+    UPDATE_CHECKLIST = "safety:update_checklist"
+    DELETE_CHECKLIST = "safety:delete_checklist"
+    VIEW_CHECKLIST = "safety:view_checklist"
+    VIEW_ALL_CHECKLISTS = "safety:view_all_checklists"
+    APPROVE_CHECKLIST = "safety:approve_checklist"
+    MANAGE_TEMPLATES = "safety:manage_templates"
     
     # Training management
     CREATE_TRAINING = "training:create"
@@ -214,6 +252,9 @@ class Permission:
     VIEW_REPORTS = "reports:view"
     CREATE_REPORTS = "reports:create"
     
+    # System administration
+    SYSTEM_ADMIN = "system:admin"
+    
     # Webhook management
     CREATE_WEBHOOK = "webhook:create"
     UPDATE_WEBHOOK = "webhook:update"
@@ -223,16 +264,24 @@ class Permission:
 
 # Role permissions mapping
 ROLE_PERMISSIONS = {
-    "admin": [
+    "superadmin": [
         # All permissions
         Permission.CREATE_USER,
         Permission.UPDATE_USER,
         Permission.DELETE_USER,
         Permission.VIEW_USER,
+        Permission.MANAGE_ROLES,
         Permission.CREATE_INVENTORY,
         Permission.UPDATE_INVENTORY,
         Permission.DELETE_INVENTORY,
         Permission.VIEW_INVENTORY,
+        Permission.CREATE_CHECKLIST,
+        Permission.UPDATE_CHECKLIST,
+        Permission.DELETE_CHECKLIST,
+        Permission.VIEW_CHECKLIST,
+        Permission.VIEW_ALL_CHECKLISTS,
+        Permission.APPROVE_CHECKLIST,
+        Permission.MANAGE_TEMPLATES,
         Permission.CREATE_TRAINING,
         Permission.UPDATE_TRAINING,
         Permission.DELETE_TRAINING,
@@ -242,16 +291,23 @@ ROLE_PERMISSIONS = {
         Permission.ISSUE_CERTIFICATE,
         Permission.VIEW_REPORTS,
         Permission.CREATE_REPORTS,
+        Permission.SYSTEM_ADMIN,
         Permission.CREATE_WEBHOOK,
         Permission.UPDATE_WEBHOOK,
         Permission.DELETE_WEBHOOK,
         Permission.VIEW_WEBHOOK,
     ],
-    "manager": [
+    "admin": [
         Permission.VIEW_USER,
         Permission.CREATE_INVENTORY,
         Permission.UPDATE_INVENTORY,
         Permission.VIEW_INVENTORY,
+        Permission.CREATE_CHECKLIST,
+        Permission.UPDATE_CHECKLIST,
+        Permission.VIEW_CHECKLIST,
+        Permission.VIEW_ALL_CHECKLISTS,
+        Permission.APPROVE_CHECKLIST,
+        Permission.MANAGE_TEMPLATES,
         Permission.CREATE_TRAINING,
         Permission.UPDATE_TRAINING,
         Permission.VIEW_TRAINING,
@@ -262,8 +318,11 @@ ROLE_PERMISSIONS = {
         Permission.CREATE_REPORTS,
         Permission.VIEW_WEBHOOK,
     ],
-    "worker": [
+    "employee": [
         Permission.VIEW_INVENTORY,
+        Permission.CREATE_CHECKLIST,
+        Permission.UPDATE_CHECKLIST,
+        Permission.VIEW_CHECKLIST,
         Permission.VIEW_TRAINING,
         Permission.TAKE_TRAINING,
         Permission.VIEW_CERTIFICATE,
@@ -286,3 +345,18 @@ def require_permission(permission: str):
             )
         return current_user
     return permission_checker
+
+
+def can_access_checklist(current_user: CurrentUser, checklist_owner_id: str) -> bool:
+    """Check if user can access a specific checklist."""
+    # Superadmin and admin can access all checklists
+    if current_user.role in ["superadmin", "admin"]:
+        return True
+    
+    # Employees can only access their own checklists
+    return current_user.id == checklist_owner_id
+
+
+def can_approve_checklist(current_user: CurrentUser) -> bool:
+    """Check if user can approve checklists."""
+    return has_permission(current_user.role, Permission.APPROVE_CHECKLIST)
