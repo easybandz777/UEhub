@@ -1,3 +1,11 @@
-# Ignore everything except frontend
-*
-!frontend/
+# Ignore backend and other directories but keep frontend
+backend/
+worker/
+infra/
+packages/
+.cursor/
+*.md
+Makefile
+docker-compose*.yml
+Dockerfile*
+.dependency-cruiser.js
