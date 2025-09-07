@@ -27,10 +27,6 @@ function SafetyChecklistsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  useEffect(() => {
-    loadChecklists()
-  }, [loadChecklists])
-
   const loadChecklists = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -55,6 +51,10 @@ function SafetyChecklistsPage() {
       setIsLoading(false)
     }
   }, [searchTerm, statusFilter])
+
+  useEffect(() => {
+    loadChecklists()
+  }, [loadChecklists])
 
   const handleDelete = async (checklistId: string) => {
     if (!confirm('Are you sure you want to delete this checklist?')) {
