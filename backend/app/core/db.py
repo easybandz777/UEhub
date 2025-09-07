@@ -14,10 +14,23 @@ from .settings import get_settings
 
 settings = get_settings()
 
-# Create async engine with SSL configuration
+# Create async engine with proper SSL configuration for Neon
 connect_args = {}
-if "postgresql" in settings.database.url:
-    # Add SSL configuration for PostgreSQL
+database_url = settings.database.url
+
+# Handle Neon SSL configuration
+if "postgresql" in database_url and "neon" in database_url:
+    # Remove any sslmode parameters from URL and handle via connect_args
+    if "sslmode=" in database_url:
+        database_url = database_url.split("?")[0]  # Remove query parameters
+    
+    connect_args = {
+        "ssl": "require",
+        "server_settings": {
+            "jit": "off"
+        }
+    }
+elif "postgresql" in database_url:
     connect_args = {
         "server_settings": {
             "jit": "off"
@@ -25,7 +38,7 @@ if "postgresql" in settings.database.url:
     }
 
 async_engine = create_async_engine(
-    settings.database.url,
+    database_url,
     echo=settings.database.echo,
     pool_size=settings.database.pool_size,
     max_overflow=settings.database.max_overflow,
@@ -34,14 +47,21 @@ async_engine = create_async_engine(
 )
 
 # Create sync engine for Alembic
+sync_database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
 sync_connect_args = {}
-if "postgresql" in settings.database.url:
+
+if "postgresql" in sync_database_url and "neon" in sync_database_url:
+    sync_connect_args = {
+        "sslmode": "require",
+        "options": "-c jit=off"
+    }
+elif "postgresql" in sync_database_url:
     sync_connect_args = {
         "options": "-c jit=off"
     }
 
 sync_engine = create_engine(
-    settings.database.url.replace("postgresql+asyncpg://", "postgresql://"),
+    sync_database_url,
     echo=settings.database.echo,
     pool_size=settings.database.pool_size,
     max_overflow=settings.database.max_overflow,
