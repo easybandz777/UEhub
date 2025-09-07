@@ -16,6 +16,7 @@ from .modules.auth.router import router as auth_router
 
 # Import other module routers as they're created
 from .modules.inventory.router import router as inventory_router
+from .test_router import test_router
 # from .modules.training.router import router as training_router
 # from .modules.certs.router import router as certs_router
 # from .modules.reporting.router import router as reporting_router
@@ -91,6 +92,9 @@ async def test_no_auth():
 # Include routers
 app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
+
+# NUCLEAR TEST ROUTER - NO DEPENDENCIES
+app.include_router(test_router, prefix="/nuclear", tags=["nuclear-test"])
 
 # Include other module routers as they're created
 app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
