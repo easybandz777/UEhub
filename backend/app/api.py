@@ -71,12 +71,16 @@ app = FastAPI(
 )
 
 # Add middleware
+# Debug CORS origins
+logging.info(f"CORS origins configured: {settings.app.cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.app.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],  # Explicitly allow all origins
+    allow_credentials=False,  # Set to False when using "*" for origins
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.add_middleware(
@@ -115,6 +119,12 @@ app.include_router(test_router, prefix="/nuclear", tags=["nuclear-test"])
 # app.include_router(certs_router, prefix=f"{settings.app.api_prefix}/certs", tags=["certificates"])
 # app.include_router(reporting_router, prefix=f"{settings.app.api_prefix}/reports", tags=["reporting"])
 # app.include_router(webhooks_router, prefix=f"{settings.app.api_prefix}/webhooks", tags=["webhooks"])
+
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle OPTIONS requests for CORS preflight."""
+    return {"message": "OK"}
 
 
 @app.get("/")
@@ -196,7 +206,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.api:app",
         host="0.0.0.0",
-        port=8000,
+        port=8080,
         reload=settings.app.environment == "development",
         log_level=settings.app.log_level.lower(),
     )
