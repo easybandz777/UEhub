@@ -1,16 +1,14 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Navigation from '../components/Navigation'
+import { AuthProvider } from '@/components/auth/AuthProvider'
+import Navigation from '@/components/Navigation'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'UE Hub - Upper Echelon Hub',
-  description: 'Inventory management and OSHA safety training system',
-  keywords: ['inventory', 'training', 'OSHA', 'safety', 'scaffolding', 'management'],
-  authors: [{ name: 'UE Hub Team' }],
-  viewport: 'width=device-width, initial-scale=1',
+  title: 'UE Hub - Safety & Inventory Management',
+  description: 'Professional safety management and inventory tracking for construction teams',
 }
 
 export default function RootLayout({
@@ -19,14 +17,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
-        <div id="root">
+        <AuthProvider>
           <Navigation />
-          <main>
-            {children}
-          </main>
-        </div>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

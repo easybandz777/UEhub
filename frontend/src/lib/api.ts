@@ -1,109 +1,163 @@
-/**
- * API client for UE Hub backend
- * Uses XHR for POST requests to avoid fetch recursion issues
- */
+import { z } from 'zod'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 const DIRECT_API_URL = 'https://uehub.fly.dev/v1'
 
-export interface InventoryItem {
+// Types
+export interface User {
   id: string
-  sku: string
+  email: string
   name: string
-  location: string
-  barcode?: string
-  qty: number
-  min_qty: number
-  is_low_stock: boolean
+  role: 'superadmin' | 'admin' | 'employee'
+  is_active: boolean
+  created_at: string
   updated_at: string
 }
 
-export interface InventoryStats {
-  total_items: number
-  total_value: number
-  low_stock_count: number
-  out_of_stock_count: number
-  recent_movements: number
+export interface LoginRequest {
+  email: string
+  password: string
 }
 
-export interface InventoryListResponse {
-  items: InventoryItem[]
-  total: number
-  page: number
-  per_page: number
-  pages: number
-  stats?: InventoryStats
-}
-
-export interface CreateInventoryItem {
-  sku: string
+export interface RegisterRequest {
+  email: string
   name: string
-  location: string
-  barcode?: string
-  qty: number
-  min_qty: number
+  password: string
 }
 
-export interface UpdateInventoryItem {
-  sku?: string
-  name?: string
+export interface LoginResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  expires_in: number
+  user: User
+}
+
+export interface InventoryItem {
+  id: string
+  name: string
+  description?: string
+  category: string
+  quantity: number
+  unit: string
   location?: string
   barcode?: string
-  min_qty?: number
+  min_stock?: number
+  max_stock?: number
+  cost?: number
+  supplier?: string
+  created_at: string
+  updated_at: string
 }
 
-class ApiClient {
+export interface SafetyChecklist {
+  id: string
+  project_name: string
+  location: string
+  inspector_id: string
+  inspection_date: string
+  scaffold_type: string
+  height: string
+  contractor?: string
+  permit_number?: string
+  status: 'draft' | 'completed' | 'approved'
+  total_items: number
+  passed_items: number
+  failed_items: number
+  na_items: number
+  critical_failures: number
+  approved_by_id?: string
+  approved_at?: string
+  created_at: string
+  updated_at: string
+  checklist_items: SafetyChecklistItem[]
+}
+
+export interface SafetyChecklistItem {
+  id: string
+  checklist_id: string
+  item_id: string
+  category: string
+  number: string
+  text: string
+  is_critical: boolean
+  status?: 'pass' | 'fail' | 'na'
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SafetyChecklistCreate {
+  project_name: string
+  location: string
+  inspection_date: string
+  scaffold_type: string
+  height: string
+  contractor?: string
+  permit_number?: string
+  checklist_items: Omit<SafetyChecklistItem, 'id' | 'checklist_id' | 'created_at' | 'updated_at'>[]
+}
+
+export interface SafetyStats {
+  total_checklists: number
+  completed_checklists: number
+  approved_checklists: number
+  pending_approval: number
+  critical_failures_count: number
+  average_completion_rate: number
+  checklists_this_month: number
+  checklists_this_week: number
+}
+
+// Auth storage
+class AuthStorage {
+  private static readonly ACCESS_TOKEN_KEY = 'access_token'
+  private static readonly REFRESH_TOKEN_KEY = 'refresh_token'
+  private static readonly USER_KEY = 'user'
+
+  static getAccessToken(): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(this.ACCESS_TOKEN_KEY)
+  }
+
+  static setAccessToken(token: string): void {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(this.ACCESS_TOKEN_KEY, token)
+  }
+
+  static getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY)
+  }
+
+  static setRefreshToken(token: string): void {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(this.REFRESH_TOKEN_KEY, token)
+  }
+
+  static getUser(): User | null {
+    if (typeof window === 'undefined') return null
+    const userStr = localStorage.getItem(this.USER_KEY)
+    return userStr ? JSON.parse(userStr) : null
+  }
+
+  static setUser(user: User): void {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user))
+  }
+
+  static clear(): void {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(this.ACCESS_TOKEN_KEY)
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY)
+    localStorage.removeItem(this.USER_KEY)
+  }
+}
+
+export class ApiClient {
   private baseUrl: string
-  private token: string | null = null
 
-  constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl
-  }
-
-  setToken(token: string) {
-    this.token = token
-  }
-
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
-    
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-
-    // Add any custom headers from options
-    if (options.headers) {
-      if (Array.isArray(options.headers)) {
-        // Handle array format
-        options.headers.forEach(([key, value]) => {
-          headers[key] = value
-        })
-      } else {
-        // Handle object format
-        Object.entries(options.headers).forEach(([key, value]) => {
-          headers[key] = value
-        })
-      }
-    }
-
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`API Error: ${response.status} - ${errorText}`)
-    }
-
-    return response.json()
+  constructor() {
+    this.baseUrl = DIRECT_API_URL
   }
 
   private async xhrRequest<T>(
@@ -112,151 +166,318 @@ class ApiClient {
       method?: string
       body?: string
       headers?: Record<string, string>
+      requireAuth?: boolean
     } = {}
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
-      const url = `${DIRECT_API_URL}${endpoint}`
+      const url = `${this.baseUrl}${endpoint}`
       const method = options.method || 'GET'
-      
-      console.log('XHR Request:', method, url)
-      
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          console.log('XHR Response:', xhr.status, xhr.responseText?.substring(0, 200) + '...')
-          
+
+      xhr.open(method, url, true)
+
+      // Set headers
+      const headers = {
+        'Accept': 'application/json',
+        ...options.headers
+      }
+
+      // Add auth header if required
+      if (options.requireAuth !== false) {
+        const token = AuthStorage.getAccessToken()
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+      }
+
+      // Set Content-Type for requests with body
+      if (options.body && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json'
+      }
+
+      Object.entries(headers).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value)
+      })
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              const result = JSON.parse(xhr.responseText)
-              console.log('XHR Success:', method, endpoint, 'Items:', result.items?.length || 'N/A')
-              resolve(result)
-            } catch (parseError) {
-              console.error('XHR Parse Error:', parseError, 'Response:', xhr.responseText)
-              reject(new Error(`Parse error: ${parseError}`))
+              const response = xhr.responseText ? JSON.parse(xhr.responseText) : {}
+              resolve(response)
+            } catch (error) {
+              reject(new Error('Failed to parse response'))
             }
           } else {
-            console.error('XHR HTTP Error:', xhr.status, xhr.responseText)
-            reject(new Error(`XHR Error: ${xhr.status} - ${xhr.responseText}`))
+            try {
+              const error = xhr.responseText ? JSON.parse(xhr.responseText) : { detail: 'Request failed' }
+              reject(new Error(error.detail || `Request failed with status ${xhr.status}`))
+            } catch {
+              reject(new Error(`Request failed with status ${xhr.status}`))
+            }
           }
         }
       }
-      
-      xhr.onerror = function() {
-        console.error('XHR Network Error for:', method, url)
-        reject(new Error('XHR Network Error'))
+
+      xhr.onerror = () => {
+        reject(new Error('Network error'))
       }
-      
-      xhr.open(method, url, true)
-      
-      // Set headers - only set Content-Type for requests with body
-      if (method !== 'GET' && method !== 'HEAD') {
-        xhr.setRequestHeader('Content-Type', 'application/json')
-      }
-      xhr.setRequestHeader('Accept', 'application/json')
-      
-      if (options.headers) {
-        Object.entries(options.headers).forEach(([key, value]) => {
-          xhr.setRequestHeader(key, value)
-        })
-      }
-      
-      if (this.token) {
-        xhr.setRequestHeader('Authorization', `Bearer ${this.token}`)
-      }
-      
-      xhr.send(options.body || null)
+
+      xhr.send(options.body)
     })
   }
 
-  // Inventory endpoints
-  async getInventoryItems(params?: {
-    page?: number
-    per_page?: number
-    search?: string
-    location?: string
-    low_stock_only?: boolean
-    out_of_stock_only?: boolean
-  }): Promise<InventoryListResponse> {
-    const searchParams = new URLSearchParams()
-    
-    if (params?.page) searchParams.set('page', params.page.toString())
-    if (params?.per_page) searchParams.set('per_page', params.per_page.toString())
-    if (params?.search) searchParams.set('search', params.search)
-    if (params?.location) searchParams.set('location', params.location)
-    if (params?.low_stock_only) searchParams.set('low_stock_only', 'true')
-    if (params?.out_of_stock_only) searchParams.set('out_of_stock_only', 'true')
-
-    const query = searchParams.toString()
-    const endpoint = `/inventory/${query ? `?${query}` : ''}`
-    
-    // Use XHR for consistency and to avoid any fetch issues
-    return this.xhrRequest<InventoryListResponse>(endpoint)
+  // Auth methods
+  async register(data: RegisterRequest): Promise<User> {
+    return this.xhrRequest<User>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      requireAuth: false
+    })
   }
 
-  async getInventoryStats(): Promise<InventoryStats> {
-    // Use XHR for consistency and to avoid any fetch issues
-    return this.xhrRequest<InventoryStats>('/inventory/stats')
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    const response = await this.xhrRequest<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      requireAuth: false
+    })
+
+    // Store tokens and user
+    AuthStorage.setAccessToken(response.access_token)
+    AuthStorage.setRefreshToken(response.refresh_token)
+    AuthStorage.setUser(response.user)
+
+    return response
   }
 
-  async getInventoryItem(id: string): Promise<InventoryItem> {
-    // Use XHR for consistency and to avoid any fetch issues
-    return this.xhrRequest<InventoryItem>(`/inventory/${id}`)
+  async logout(): Promise<void> {
+    AuthStorage.clear()
   }
 
-  async createInventoryItem(item: CreateInventoryItem): Promise<InventoryItem> {
-    // Use XHR for POST requests to avoid fetch recursion issues
+  async getCurrentUser(): Promise<User> {
+    return this.xhrRequest<User>('/auth/me')
+  }
+
+  async refreshToken(): Promise<void> {
+    const refreshToken = AuthStorage.getRefreshToken()
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    const response = await this.xhrRequest<{ access_token: string; expires_in: number }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      requireAuth: false
+    })
+
+    AuthStorage.setAccessToken(response.access_token)
+  }
+
+  isAuthenticated(): boolean {
+    return !!AuthStorage.getAccessToken()
+  }
+
+  getCurrentUserFromStorage(): User | null {
+    return AuthStorage.getUser()
+  }
+
+  // Inventory methods (existing)
+  async createInventoryItem(item: Omit<InventoryItem, 'id' | 'created_at' | 'updated_at'>): Promise<InventoryItem> {
     return this.xhrRequest<InventoryItem>('/inventory/', {
       method: 'POST',
-      body: JSON.stringify(item),
+      body: JSON.stringify(item)
     })
   }
 
-  async updateInventoryItem(id: string, item: UpdateInventoryItem): Promise<InventoryItem> {
+  async updateInventoryItem(id: string, item: Partial<InventoryItem>): Promise<InventoryItem> {
     return this.xhrRequest<InventoryItem>(`/inventory/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(item),
+      body: JSON.stringify(item)
     })
   }
 
   async deleteInventoryItem(id: string): Promise<void> {
-    await this.xhrRequest<void>(`/inventory/${id}`, {
-      method: 'DELETE',
+    return this.xhrRequest<void>(`/inventory/${id}`, {
+      method: 'DELETE'
     })
   }
 
-  async adjustInventoryQuantity(
-    id: string,
-    qty: number,
-    reason: string,
-    meta?: Record<string, any>
-  ): Promise<InventoryItem> {
+  async adjustInventoryQuantity(id: string, adjustment: number, reason?: string): Promise<InventoryItem> {
     return this.xhrRequest<InventoryItem>(`/inventory/${id}/adjust`, {
       method: 'POST',
-      body: JSON.stringify({ qty, reason, meta }),
+      body: JSON.stringify({ adjustment, reason })
     })
   }
 
-  async moveInventoryQuantity(
-    id: string,
-    delta: number,
-    reason: string,
-    meta?: Record<string, any>
-  ): Promise<InventoryItem> {
+  async moveInventoryQuantity(id: string, quantity: number, to_location: string, reason?: string): Promise<InventoryItem> {
     return this.xhrRequest<InventoryItem>(`/inventory/${id}/move`, {
       method: 'POST',
-      body: JSON.stringify({ delta, reason, meta }),
+      body: JSON.stringify({ quantity, to_location, reason })
     })
   }
 
-  async searchByBarcode(barcode: string): Promise<{ item: InventoryItem | null; found: boolean }> {
-    return this.xhrRequest<{ item: InventoryItem | null; found: boolean }>(`/inventory/search/barcode/${barcode}`)
+  async getInventoryItems(params?: {
+    page?: number
+    per_page?: number
+    search?: string
+    category?: string
+    location?: string
+    low_stock?: boolean
+  }): Promise<{
+    items: InventoryItem[]
+    total: number
+    page: number
+    per_page: number
+    pages: number
+  }> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.append('page', params.page.toString())
+    if (params?.per_page) searchParams.append('per_page', params.per_page.toString())
+    if (params?.search) searchParams.append('search', params.search)
+    if (params?.category) searchParams.append('category', params.category)
+    if (params?.location) searchParams.append('location', params.location)
+    if (params?.low_stock) searchParams.append('low_stock', 'true')
+
+    const queryString = searchParams.toString()
+    const endpoint = queryString ? `/inventory/?${queryString}` : '/inventory/'
+
+    return this.xhrRequest(endpoint)
   }
 
-  // Health check
-  async healthCheck(): Promise<any> {
-    return this.xhrRequest('/health')
+  async getInventoryStats(): Promise<{
+    total_items: number
+    total_value: number
+    low_stock_items: number
+    categories: number
+    locations: number
+    recent_activity: any[]
+  }> {
+    return this.xhrRequest('/inventory/stats')
+  }
+
+  async getInventoryItem(id: string): Promise<InventoryItem> {
+    return this.xhrRequest<InventoryItem>(`/inventory/${id}`)
+  }
+
+  async searchByBarcode(barcode: string): Promise<InventoryItem | null> {
+    return this.xhrRequest<InventoryItem | null>(`/inventory/barcode/${barcode}`)
+  }
+
+  // Safety checklist methods
+  async createSafetyChecklist(data: SafetyChecklistCreate): Promise<SafetyChecklist> {
+    return this.xhrRequest<SafetyChecklist>('/safety/checklists', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async getSafetyChecklists(params?: {
+    page?: number
+    per_page?: number
+    project_name?: string
+    location?: string
+    status?: string
+    inspector_id?: string
+    date_from?: string
+    date_to?: string
+    critical_failures_only?: boolean
+  }): Promise<{
+    items: SafetyChecklist[]
+    total: number
+    page: number
+    per_page: number
+    pages: number
+  }> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.append('page', params.page.toString())
+    if (params?.per_page) searchParams.append('per_page', params.per_page.toString())
+    if (params?.project_name) searchParams.append('project_name', params.project_name)
+    if (params?.location) searchParams.append('location', params.location)
+    if (params?.status) searchParams.append('status', params.status)
+    if (params?.inspector_id) searchParams.append('inspector_id', params.inspector_id)
+    if (params?.date_from) searchParams.append('date_from', params.date_from)
+    if (params?.date_to) searchParams.append('date_to', params.date_to)
+    if (params?.critical_failures_only) searchParams.append('critical_failures_only', 'true')
+
+    const queryString = searchParams.toString()
+    const endpoint = queryString ? `/safety/checklists?${queryString}` : '/safety/checklists'
+
+    return this.xhrRequest(endpoint)
+  }
+
+  async getSafetyChecklist(id: string): Promise<SafetyChecklist> {
+    return this.xhrRequest<SafetyChecklist>(`/safety/checklists/${id}`)
+  }
+
+  async updateSafetyChecklist(id: string, data: Partial<SafetyChecklistCreate>): Promise<SafetyChecklist> {
+    return this.xhrRequest<SafetyChecklist>(`/safety/checklists/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async deleteSafetyChecklist(id: string): Promise<void> {
+    return this.xhrRequest<void>(`/safety/checklists/${id}`, {
+      method: 'DELETE'
+    })
+  }
+
+  async updateChecklistItem(
+    checklistId: string,
+    itemId: string,
+    data: { status?: 'pass' | 'fail' | 'na'; notes?: string }
+  ): Promise<SafetyChecklistItem> {
+    return this.xhrRequest<SafetyChecklistItem>(`/safety/checklists/${checklistId}/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async bulkUpdateChecklistItems(
+    checklistId: string,
+    updates: { item_id: string; status?: string; notes?: string }[]
+  ): Promise<void> {
+    return this.xhrRequest<void>(`/safety/checklists/${checklistId}/items/bulk-update`, {
+      method: 'POST',
+      body: JSON.stringify({ item_updates: updates })
+    })
+  }
+
+  async approveChecklist(
+    checklistId: string,
+    approved: boolean,
+    comments?: string
+  ): Promise<SafetyChecklist> {
+    return this.xhrRequest<SafetyChecklist>(`/safety/checklists/${checklistId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ approved, comments })
+    })
+  }
+
+  async getSafetyStats(): Promise<SafetyStats> {
+    return this.xhrRequest<SafetyStats>('/safety/stats')
+  }
+
+  async getSafetyDashboard(): Promise<{
+    stats: SafetyStats
+    recent_checklists: SafetyChecklist[]
+    pending_approvals: SafetyChecklist[]
+    critical_failures: SafetyChecklist[]
+    completion_trend: any[]
+  }> {
+    return this.xhrRequest('/safety/dashboard')
+  }
+
+  async getDefaultOSHATemplate(): Promise<any> {
+    return this.xhrRequest('/safety/templates/default/osha')
+  }
+
+  async healthCheck(): Promise<{ status: string; timestamp: string }> {
+    return this.xhrRequest('/health', { requireAuth: false })
   }
 }
 
+// Export singleton instance
 export const apiClient = new ApiClient()
-export default apiClient
+export { AuthStorage }
