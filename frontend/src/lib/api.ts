@@ -50,12 +50,8 @@ export interface InventoryItem {
 export interface InventoryStats {
   total_items: number
   total_value: number
-  low_stock_items: number
   low_stock_count: number
   out_of_stock_count: number
-  categories: number
-  locations: number
-  recent_activity: any[]
   recent_movements: number
 }
 
@@ -355,15 +351,8 @@ export class ApiClient {
     return this.xhrRequest(endpoint)
   }
 
-  async getInventoryStats(): Promise<{
-    total_items: number
-    total_value: number
-    low_stock_items: number
-    categories: number
-    locations: number
-    recent_activity: any[]
-  }> {
-    return this.xhrRequest('/inventory/stats')
+  async getInventoryStats(): Promise<InventoryStats> {
+    return this.xhrRequest<InventoryStats>('/inventory/stats')
   }
 
   async getInventoryItem(id: string): Promise<InventoryItem> {
