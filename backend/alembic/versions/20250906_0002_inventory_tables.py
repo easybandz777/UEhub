@@ -38,16 +38,15 @@ def upgrade() -> None:
     op.create_index(op.f('ix_inventory_items_sku'), 'inventory_items', ['sku'], unique=False)
     op.create_unique_constraint(None, 'inventory_items', ['sku'])
 
-    # Create inventory_events table
+    # Create inventory_events table (without foreign key constraints for now)
     op.create_table('inventory_events',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('item_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('actor_id', sa.String(), nullable=False),
+        sa.Column('actor_id', sa.String(), nullable=True),  # Make nullable for now
         sa.Column('delta', sa.Integer(), nullable=False),
         sa.Column('reason', sa.String(length=200), nullable=False),
         sa.Column('meta_json', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['actor_id'], ['auth_user.id'], ),
         sa.ForeignKeyConstraint(['item_id'], ['inventory_items.id'], ),
         sa.PrimaryKeyConstraint('id')
     )

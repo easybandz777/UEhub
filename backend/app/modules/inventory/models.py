@@ -42,7 +42,7 @@ class InventoryEvent(Base):
     
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
     item_id = Column(PostgresUUID(as_uuid=True), ForeignKey("inventory_items.id"), nullable=False, index=True)
-    actor_id = Column(String, ForeignKey("auth_user.id"), nullable=False, index=True)
+    actor_id = Column(String, nullable=True, index=True)  # Remove FK constraint for now
     delta = Column(Integer, nullable=False)  # Positive for add, negative for remove
     reason = Column(String(200), nullable=False)
     meta_json = Column(JSON, nullable=True, default=dict)
@@ -50,7 +50,7 @@ class InventoryEvent(Base):
     
     # Relationships
     item = relationship("InventoryItem", back_populates="events")
-    actor = relationship("User")
+    # actor = relationship("User")  # Commented out for now
     
     def __repr__(self):
         return f"<InventoryEvent(id={self.id}, item_id={self.item_id}, delta={self.delta})>"
