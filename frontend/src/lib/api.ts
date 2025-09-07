@@ -117,34 +117,41 @@ class ApiClient {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       const url = `${DIRECT_API_URL}${endpoint}`
+      const method = options.method || 'GET'
       
-      console.log('XHR Request:', options.method || 'GET', url)
+      console.log('XHR Request:', method, url)
       
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-          console.log('XHR Response:', xhr.status, xhr.responseText)
+          console.log('XHR Response:', xhr.status, xhr.responseText?.substring(0, 200) + '...')
           
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const result = JSON.parse(xhr.responseText)
+              console.log('XHR Success:', method, endpoint, 'Items:', result.items?.length || 'N/A')
               resolve(result)
             } catch (parseError) {
+              console.error('XHR Parse Error:', parseError, 'Response:', xhr.responseText)
               reject(new Error(`Parse error: ${parseError}`))
             }
           } else {
+            console.error('XHR HTTP Error:', xhr.status, xhr.responseText)
             reject(new Error(`XHR Error: ${xhr.status} - ${xhr.responseText}`))
           }
         }
       }
       
       xhr.onerror = function() {
+        console.error('XHR Network Error for:', method, url)
         reject(new Error('XHR Network Error'))
       }
       
-      xhr.open(options.method || 'GET', url, true)
+      xhr.open(method, url, true)
       
-      // Set headers
-      xhr.setRequestHeader('Content-Type', 'application/json')
+      // Set headers - only set Content-Type for requests with body
+      if (method !== 'GET' && method !== 'HEAD') {
+        xhr.setRequestHeader('Content-Type', 'application/json')
+      }
       xhr.setRequestHeader('Accept', 'application/json')
       
       if (options.headers) {
@@ -180,17 +187,20 @@ class ApiClient {
     if (params?.out_of_stock_only) searchParams.set('out_of_stock_only', 'true')
 
     const query = searchParams.toString()
-    const endpoint = `/inventory${query ? `?${query}` : ''}`
+    const endpoint = `/inventory/${query ? `?${query}` : ''}`
     
-    return this.request<InventoryListResponse>(endpoint)
+    // Use XHR for consistency and to avoid any fetch issues
+    return this.xhrRequest<InventoryListResponse>(endpoint)
   }
 
   async getInventoryStats(): Promise<InventoryStats> {
-    return this.request<InventoryStats>('/inventory/stats')
+    // Use XHR for consistency and to avoid any fetch issues
+    return this.xhrRequest<InventoryStats>('/inventory/stats')
   }
 
   async getInventoryItem(id: string): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/${id}`)
+    // Use XHR for consistency and to avoid any fetch issues
+    return this.xhrRequest<InventoryItem>(`/inventory/${id}`)
   }
 
   async createInventoryItem(item: CreateInventoryItem): Promise<InventoryItem> {
@@ -239,12 +249,12 @@ class ApiClient {
   }
 
   async searchByBarcode(barcode: string): Promise<{ item: InventoryItem | null; found: boolean }> {
-    return this.request<{ item: InventoryItem | null; found: boolean }>(`/inventory/search/barcode/${barcode}`)
+    return this.xhrRequest<{ item: InventoryItem | null; found: boolean }>(`/inventory/search/barcode/${barcode}`)
   }
 
   // Health check
   async healthCheck(): Promise<any> {
-    return this.request('/health')
+    return this.xhrRequest('/health')
   }
 }
 
