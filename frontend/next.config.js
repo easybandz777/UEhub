@@ -8,14 +8,7 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://uehub.fly.dev/v1/:path*',
-      },
-    ]
-  },
+  // Removed rewrites - using direct XHR calls to avoid fetch recursion issues
   webpack: (config, { isServer }) => {
     // Optimize bundle size
     if (!isServer) {

@@ -1,8 +1,10 @@
 /**
  * API client for UE Hub backend
+ * Uses XHR for POST requests to avoid fetch recursion issues
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+const DIRECT_API_URL = 'https://uehub.fly.dev/v1'
 
 export interface InventoryItem {
   id: string
@@ -104,6 +106,61 @@ class ApiClient {
     return response.json()
   }
 
+  private async xhrRequest<T>(
+    endpoint: string,
+    options: {
+      method?: string
+      body?: string
+      headers?: Record<string, string>
+    } = {}
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      const url = `${DIRECT_API_URL}${endpoint}`
+      
+      console.log('XHR Request:', options.method || 'GET', url)
+      
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          console.log('XHR Response:', xhr.status, xhr.responseText)
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const result = JSON.parse(xhr.responseText)
+              resolve(result)
+            } catch (parseError) {
+              reject(new Error(`Parse error: ${parseError}`))
+            }
+          } else {
+            reject(new Error(`XHR Error: ${xhr.status} - ${xhr.responseText}`))
+          }
+        }
+      }
+      
+      xhr.onerror = function() {
+        reject(new Error('XHR Network Error'))
+      }
+      
+      xhr.open(options.method || 'GET', url, true)
+      
+      // Set headers
+      xhr.setRequestHeader('Content-Type', 'application/json')
+      xhr.setRequestHeader('Accept', 'application/json')
+      
+      if (options.headers) {
+        Object.entries(options.headers).forEach(([key, value]) => {
+          xhr.setRequestHeader(key, value)
+        })
+      }
+      
+      if (this.token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${this.token}`)
+      }
+      
+      xhr.send(options.body || null)
+    })
+  }
+
   // Inventory endpoints
   async getInventoryItems(params?: {
     page?: number
@@ -137,21 +194,22 @@ class ApiClient {
   }
 
   async createInventoryItem(item: CreateInventoryItem): Promise<InventoryItem> {
-    return this.request<InventoryItem>('/inventory', {
+    // Use XHR for POST requests to avoid fetch recursion issues
+    return this.xhrRequest<InventoryItem>('/inventory/', {
       method: 'POST',
       body: JSON.stringify(item),
     })
   }
 
   async updateInventoryItem(id: string, item: UpdateInventoryItem): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/${id}`, {
+    return this.xhrRequest<InventoryItem>(`/inventory/${id}`, {
       method: 'PUT',
       body: JSON.stringify(item),
     })
   }
 
   async deleteInventoryItem(id: string): Promise<void> {
-    await this.request(`/inventory/${id}`, {
+    await this.xhrRequest<void>(`/inventory/${id}`, {
       method: 'DELETE',
     })
   }
@@ -162,7 +220,7 @@ class ApiClient {
     reason: string,
     meta?: Record<string, any>
   ): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/${id}/adjust`, {
+    return this.xhrRequest<InventoryItem>(`/inventory/${id}/adjust`, {
       method: 'POST',
       body: JSON.stringify({ qty, reason, meta }),
     })
@@ -174,7 +232,7 @@ class ApiClient {
     reason: string,
     meta?: Record<string, any>
   ): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/${id}/move`, {
+    return this.xhrRequest<InventoryItem>(`/inventory/${id}/move`, {
       method: 'POST',
       body: JSON.stringify({ delta, reason, meta }),
     })
