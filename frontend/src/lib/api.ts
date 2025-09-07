@@ -1,4 +1,4 @@
-const DIRECT_API_URL = 'https://uehub.fly.dev/v1'
+const DIRECT_API_URL = '/api/v1'
 
 // Types
 export interface User {
@@ -205,8 +205,8 @@ export class ApiClient {
         headers['Content-Type'] = 'application/json'
       }
 
-      Object.entries(headers).forEach(([key, value]) => {
-        xhr.setRequestHeader(key, value)
+      Object.keys(headers).forEach((key: string) => {
+        xhr.setRequestHeader(key, headers[key])
       })
 
       xhr.onreadystatechange = () => {
