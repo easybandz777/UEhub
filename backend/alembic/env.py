@@ -11,11 +11,11 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import your models here to ensure they're registered with SQLAlchemy
-from app.core.db import Base
+from app.core.db import Base, sync_engine
 from app.modules.auth.repository import User  # Import all models
 
 # Import other models as modules are created
-# from app.modules.inventory.repository import InventoryItem, InventoryEvent
+from app.modules.inventory.models import InventoryItem, InventoryEvent
 # from app.modules.training.repository import TrainingModule, TrainingAttempt
 # from app.modules.certs.repository import Certificate
 # from app.modules.webhooks.repository import OutboundWebhook, WebhookDelivery
@@ -103,7 +103,9 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    asyncio.run(run_async_migrations())
+    # Use the sync engine from our db.py which has proper SSL configuration
+    with sync_engine.connect() as connection:
+        do_run_migrations(connection)
 
 
 if context.is_offline_mode():
