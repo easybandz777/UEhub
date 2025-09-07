@@ -20,8 +20,12 @@ export default function InventoryPage() {
   const [stats, setStats] = useState<InventoryStats | null>({
     total_items: 0,
     total_value: 0,
+    low_stock_items: 0,
     low_stock_count: 0,
     out_of_stock_count: 0,
+    categories: 0,
+    locations: 0,
+    recent_activity: [],
     recent_movements: 0
   })
   const [loading, setLoading] = useState(true)
