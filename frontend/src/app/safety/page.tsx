@@ -96,7 +96,8 @@ const OSHAScaffoldingChecklist = () => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const [showCriticalOnly, setShowCriticalOnly] = useState(false)
 
-  const categories = [...new Set(checklistItems.map(item => item.category))]
+  // Fix TypeScript error by using Array.from instead of spread operator
+  const categories = Array.from(new Set(checklistItems.map(item => item.category)))
 
   const updateItemStatus = useCallback((itemId: string, status: 'pass' | 'fail' | 'na' | '') => {
     setChecklistItems(prev => 
