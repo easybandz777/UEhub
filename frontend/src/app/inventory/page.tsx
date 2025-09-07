@@ -13,26 +13,7 @@ import {
   Download,
   Upload
 } from 'lucide-react'
-
-interface InventoryItem {
-  id: string
-  sku: string
-  name: string
-  location: string
-  qty: number
-  min_qty: number
-  barcode?: string
-  is_low_stock: boolean
-  updated_at: string
-}
-
-interface InventoryStats {
-  total_items: number
-  total_value: number
-  low_stock_count: number
-  out_of_stock_count: number
-  recent_movements: number
-}
+import apiClient, { InventoryItem, InventoryStats } from '../../lib/api'
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([])
@@ -41,11 +22,35 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
+  const [formData, setFormData] = useState({
+    sku: '',
+    name: '',
+    location: '',
+    barcode: '',
+    qty: 0,
+    min_qty: 0
+  })
 
-  // Mock data for now - we'll connect to API later
+  // Load data from API
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
+    loadInventoryData()
+  }, [])
+
+  const loadInventoryData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load inventory items and stats
+      const [inventoryResponse, statsResponse] = await Promise.all([
+        apiClient.getInventoryItems({ search: searchTerm }),
+        apiClient.getInventoryStats()
+      ])
+      
+      setItems(inventoryResponse.items)
+      setStats(statsResponse)
+    } catch (error) {
+      console.error('Failed to load inventory data:', error)
+      // Show mock data as fallback
       setItems([
         {
           id: '1',
@@ -57,53 +62,19 @@ export default function InventoryPage() {
           barcode: '123456789012',
           is_low_stock: false,
           updated_at: '2024-01-15T10:30:00Z'
-        },
-        {
-          id: '2',
-          sku: 'SAW-002',
-          name: 'Circular Saw 7.25"',
-          location: 'Warehouse B - Shelf 1',
-          qty: 2,
-          min_qty: 5,
-          barcode: '123456789013',
-          is_low_stock: true,
-          updated_at: '2024-01-14T14:20:00Z'
-        },
-        {
-          id: '3',
-          sku: 'HAMMER-003',
-          name: 'Framing Hammer 20oz',
-          location: 'Tool Room - Bin 12',
-          qty: 15,
-          min_qty: 10,
-          barcode: '123456789014',
-          is_low_stock: false,
-          updated_at: '2024-01-13T09:15:00Z'
-        },
-        {
-          id: '4',
-          sku: 'SAFETY-004',
-          name: 'Hard Hat - White',
-          location: 'Safety Equipment Room',
-          qty: 0,
-          min_qty: 20,
-          barcode: '123456789015',
-          is_low_stock: true,
-          updated_at: '2024-01-12T16:45:00Z'
         }
       ])
-      
       setStats({
-        total_items: 4,
-        total_value: 2450.00,
-        low_stock_count: 2,
-        out_of_stock_count: 1,
-        recent_movements: 12
+        total_items: 1,
+        total_value: 0,
+        low_stock_count: 0,
+        out_of_stock_count: 0,
+        recent_movements: 0
       })
-      
+    } finally {
       setLoading(false)
-    }, 1000)
-  }, [])
+    }
+  }
 
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,13 +83,78 @@ export default function InventoryPage() {
   )
 
   const handleAddItem = () => {
-    setShowAddForm(true)
+    setFormData({
+      sku: '',
+      name: '',
+      location: '',
+      barcode: '',
+      qty: 0,
+      min_qty: 0
+    })
     setSelectedItem(null)
+    setShowAddForm(true)
   }
 
   const handleEditItem = (item: InventoryItem) => {
+    setFormData({
+      sku: item.sku,
+      name: item.name,
+      location: item.location,
+      barcode: item.barcode || '',
+      qty: item.qty,
+      min_qty: item.min_qty
+    })
     setSelectedItem(item)
     setShowAddForm(true)
+  }
+
+  const handleSaveItem = async () => {
+    try {
+      if (selectedItem) {
+        // Update existing item
+        await apiClient.updateInventoryItem(selectedItem.id, {
+          sku: formData.sku,
+          name: formData.name,
+          location: formData.location,
+          barcode: formData.barcode || undefined,
+          min_qty: formData.min_qty
+        })
+      } else {
+        // Create new item
+        await apiClient.createInventoryItem({
+          sku: formData.sku,
+          name: formData.name,
+          location: formData.location,
+          barcode: formData.barcode || undefined,
+          qty: formData.qty,
+          min_qty: formData.min_qty
+        })
+      }
+      
+      setShowAddForm(false)
+      await loadInventoryData()
+    } catch (error) {
+      console.error('Failed to save item:', error)
+      alert('Failed to save item. Please try again.')
+    }
+  }
+
+  const handleDeleteItem = async (item: InventoryItem) => {
+    if (!confirm(`Are you sure you want to delete "${item.name}"?`)) {
+      return
+    }
+
+    try {
+      await apiClient.deleteInventoryItem(item.id)
+      await loadInventoryData() // Reload data
+    } catch (error) {
+      console.error('Failed to delete item:', error)
+      alert('Failed to delete item. Please try again.')
+    }
+  }
+
+  const handleSearch = async () => {
+    await loadInventoryData()
   }
 
   if (loading) {
@@ -313,6 +349,7 @@ export default function InventoryPage() {
                         variant="ghost"
                         size="sm"
                         className="text-red-600 hover:text-red-900"
+                        onClick={() => handleDeleteItem(item)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -335,6 +372,114 @@ export default function InventoryPage() {
               <Plus className="h-4 w-4 mr-2" />
               Add First Item
             </Button>
+          </div>
+        )}
+
+        {/* Add/Edit Form Modal */}
+        {showAddForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h2 className="text-xl font-bold mb-4">
+                {selectedItem ? 'Edit Item' : 'Add New Item'}
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.sku}
+                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., DRILL-001"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., DeWalt 20V Max Cordless Drill"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Warehouse A - Shelf 3"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Barcode
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.barcode}
+                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 123456789012"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.qty}
+                      onChange={(e) => setFormData({ ...formData, qty: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Min Quantity
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.min_qty}
+                      onChange={(e) => setFormData({ ...formData, min_qty: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveItem}>
+                  {selectedItem ? 'Update' : 'Create'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
