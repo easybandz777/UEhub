@@ -70,7 +70,21 @@ class ApiClient {
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+    }
+
+    // Add any custom headers from options
+    if (options.headers) {
+      if (Array.isArray(options.headers)) {
+        // Handle array format
+        options.headers.forEach(([key, value]) => {
+          headers[key] = value
+        })
+      } else {
+        // Handle object format
+        Object.entries(options.headers).forEach(([key, value]) => {
+          headers[key] = value
+        })
+      }
     }
 
     if (this.token) {
