@@ -37,12 +37,6 @@ function ChecklistViewPage() {
 
   const checklistId = params.id as string
 
-  useEffect(() => {
-    if (checklistId) {
-      loadChecklist()
-    }
-  }, [checklistId, loadChecklist])
-
   const loadChecklist = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -54,6 +48,12 @@ function ChecklistViewPage() {
       setIsLoading(false)
     }
   }, [checklistId])
+
+  useEffect(() => {
+    if (checklistId) {
+      loadChecklist()
+    }
+  }, [checklistId, loadChecklist])
 
   const handleApproval = async (approved: boolean) => {
     if (!checklist) return
