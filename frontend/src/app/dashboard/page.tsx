@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useAuth, useRole, withAuth } from '@/components/auth/AuthProvider'
-import { apiClient, SafetyStats, SafetyChecklist } from '@/lib/api'
+import { apiClient } from '@/lib/api'
 import { 
   Shield, 
   CheckCircle, 
@@ -16,6 +16,27 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+interface SafetyStats {
+  total_checklists: number
+  completed_checklists: number
+  approved_checklists: number
+  pending_approval: number
+  critical_failures_count: number
+  average_completion_rate: number
+  checklists_this_month: number
+  checklists_this_week: number
+}
+
+interface SafetyChecklist {
+  id: string
+  project_name: string
+  location: string
+  status: string
+  critical_failures: number
+  created_at: string
+  updated_at: string
+}
+
 interface DashboardData {
   stats: SafetyStats
   recent_checklists: SafetyChecklist[]
@@ -25,7 +46,7 @@ interface DashboardData {
 
 function DashboardPage() {
   const { user } = useAuth()
-  const { role, canApproveChecklists, canViewAllChecklists } = useRole()
+  const { role, canApproveChecklists } = useRole()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -149,198 +170,8 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Additional Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Completion Rate</h3>
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="text-3xl font-bold text-green-600 mb-2">
-              {stats?.average_completion_rate || 0}%
-            </div>
-            <p className="text-sm text-gray-600">Average across all checklists</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">This Month</h3>
-              <Shield className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {stats?.checklists_this_month || 0}
-            </div>
-            <p className="text-sm text-gray-600">Checklists created</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">This Week</h3>
-              <Users className="w-5 h-5 text-purple-500" />
-            </div>
-            <div className="text-3xl font-bold text-purple-600 mb-2">
-              {stats?.checklists_this_week || 0}
-            </div>
-            <p className="text-sm text-gray-600">Recent activity</p>
-          </div>
-        </div>
-
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Checklists */}
-          <div className="bg-white rounded-xl shadow-sm">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Checklists</h3>
-                <Link
-                  href="/safety/checklists"
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  View All
-                </Link>
-              </div>
-            </div>
-            <div className="p-6">
-              {dashboardData?.recent_checklists?.length ? (
-                <div className="space-y-4">
-                  {dashboardData.recent_checklists.slice(0, 5).map((checklist) => (
-                    <div key={checklist.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{checklist.project_name}</h4>
-                        <p className="text-sm text-gray-600">{checklist.location}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(checklist.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          checklist.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          checklist.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {checklist.status}
-                        </span>
-                        <Link
-                          href={`/safety/checklist/${checklist.id}`}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No checklists yet</p>
-                  <Link
-                    href="/safety/checklist/new"
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >
-                    Create your first checklist
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Pending Approvals (Admin/Superadmin only) */}
-          {canApproveChecklists && (
-            <div className="bg-white rounded-xl shadow-sm">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Pending Approvals</h3>
-                  <Link
-                    href="/safety/approvals"
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >
-                    View All
-                  </Link>
-                </div>
-              </div>
-              <div className="p-6">
-                {dashboardData?.pending_approvals?.length ? (
-                  <div className="space-y-4">
-                    {dashboardData.pending_approvals.slice(0, 5).map((checklist) => (
-                      <div key={checklist.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{checklist.project_name}</h4>
-                          <p className="text-sm text-gray-600">{checklist.location}</p>
-                          <p className="text-xs text-gray-500">
-                            Completed {new Date(checklist.updated_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
-                            Needs Review
-                          </span>
-                          <Link
-                            href={`/safety/checklist/${checklist.id}`}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No pending approvals</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Critical Failures */}
-          {!canApproveChecklists && dashboardData?.critical_failures?.length ? (
-            <div className="bg-white rounded-xl shadow-sm">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Critical Failures</h3>
-                  <Link
-                    href="/safety/checklists?critical_failures_only=true"
-                    className="text-red-600 hover:text-red-700 text-sm font-medium"
-                  >
-                    View All
-                  </Link>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {dashboardData.critical_failures.slice(0, 5).map((checklist) => (
-                    <div key={checklist.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{checklist.project_name}</h4>
-                        <p className="text-sm text-gray-600">{checklist.location}</p>
-                        <p className="text-xs text-red-600 font-medium">
-                          {checklist.critical_failures} critical failure{checklist.critical_failures !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
-                          Critical
-                        </span>
-                        <Link
-                          href={`/safety/checklist/${checklist.id}`}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Quick Actions */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
