@@ -117,7 +117,7 @@ async def create_inventory_item(
     # current_user: CurrentUser = Depends(require_authenticated)  # Temporarily disabled for testing
 ):
     """Create a new inventory item."""
-    return await inventory_service.create_item(item_data)  # Removed current_user.id for testing
+    return await inventory_service.create_item(item_data, actor_id="system")  # Added actor_id for testing
 
 
 @router.put("/{item_id}", response_model=InventoryItemResponse)
@@ -128,7 +128,7 @@ async def update_inventory_item(
     # current_user: CurrentUser = Depends(require_authenticated)  # Temporarily disabled for testing
 ):
     """Update an inventory item."""
-    item = await inventory_service.update_item(item_id, item_data)  # Removed current_user.id for testing
+    item = await inventory_service.update_item(item_id, item_data, actor_id="system")  # Added actor_id for testing
     if not item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
     return item
