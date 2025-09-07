@@ -26,10 +26,19 @@ router = APIRouter()
 
 
 @router.get("/health")
-async def inventory_health_check(
+async def inventory_health_check():
+    """Simple health check without any dependencies."""
+    return {
+        "status": "healthy",
+        "message": "Inventory router is working",
+        "timestamp": "2025-01-09T21:00:00Z"
+    }
+
+@router.get("/test-db")
+async def test_database_connection(
     db: AsyncSession = Depends(get_db)
 ):
-    """Check if inventory tables exist and are accessible."""
+    """Test database connection."""
     try:
         from sqlalchemy import text
         # Try to query the inventory_items table
@@ -39,14 +48,14 @@ async def inventory_health_check(
             "status": "healthy",
             "tables_exist": True,
             "item_count": count,
-            "message": "Inventory system is operational"
+            "message": "Database connection working"
         }
     except Exception as e:
         return {
             "status": "unhealthy", 
             "tables_exist": False,
             "error": str(e),
-            "message": "Inventory tables may not exist"
+            "message": "Database connection failed"
         }
 
 

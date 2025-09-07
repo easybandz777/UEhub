@@ -82,6 +82,12 @@ app.add_middleware(
     allowed_hosts=settings.app.allowed_hosts,
 )
 
+# Test endpoint to debug authentication issues
+@app.get("/test-no-auth")
+async def test_no_auth():
+    """Test endpoint with no authentication."""
+    return {"message": "This endpoint works without auth", "status": "success"}
+
 # Include routers
 app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
