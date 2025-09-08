@@ -1,4 +1,4 @@
-const DIRECT_API_URL = '/api/v1'
+const DIRECT_API_URL = '/backend/v1'
 
 // Types
 export interface User {
