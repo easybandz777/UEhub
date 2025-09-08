@@ -207,6 +207,97 @@ async def temporary_dashboard():
         "completion_trend": []
     }
 
+# TEMPORARY INVENTORY ENDPOINTS - Bypass SQLAlchemy ORM issues with raw SQL
+@app.get("/v1/inventory/")
+async def temporary_inventory_list():
+    """Temporary inventory list endpoint using raw SQL."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        async for db in get_db():
+            # Raw SQL query to get inventory items
+            result = await db.execute(
+                text("SELECT id, sku, name, location, barcode, qty, min_qty, created_at, updated_at FROM inventory_items ORDER BY created_at DESC")
+            )
+            rows = result.fetchall()
+            
+            items = []
+            for row in rows:
+                items.append({
+                    "id": str(row.id),
+                    "sku": row.sku,
+                    "name": row.name,
+                    "location": row.location,
+                    "barcode": row.barcode,
+                    "qty": row.qty,
+                    "min_qty": row.min_qty,
+                    "is_low_stock": row.qty <= row.min_qty,
+                    "updated_at": row.updated_at.isoformat() if row.updated_at else None
+                })
+            
+            return {
+                "items": items,
+                "total": len(items),
+                "page": 1,
+                "per_page": 50,
+                "pages": 1
+            }
+            
+    except Exception as e:
+        import traceback
+        return {
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "per_page": 50,
+            "pages": 1,
+            "error": f"Failed to load inventory: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+@app.get("/v1/inventory/stats")
+async def temporary_inventory_stats():
+    """Temporary inventory stats endpoint using raw SQL."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        async for db in get_db():
+            # Raw SQL queries for stats
+            total_result = await db.execute(text("SELECT COUNT(*) as count FROM inventory_items"))
+            total_items = total_result.fetchone().count
+            
+            low_stock_result = await db.execute(text("SELECT COUNT(*) as count FROM inventory_items WHERE qty <= min_qty"))
+            low_stock_count = low_stock_result.fetchone().count
+            
+            out_of_stock_result = await db.execute(text("SELECT COUNT(*) as count FROM inventory_items WHERE qty = 0"))
+            out_of_stock_count = out_of_stock_result.fetchone().count
+            
+            # Calculate total value (assuming no price field, use qty as placeholder)
+            value_result = await db.execute(text("SELECT SUM(qty) as total FROM inventory_items"))
+            total_value = value_result.fetchone().total or 0
+            
+            return {
+                "total_items": total_items,
+                "total_value": float(total_value),  # Placeholder calculation
+                "low_stock_count": low_stock_count,
+                "out_of_stock_count": out_of_stock_count,
+                "recent_movements": 0  # No movements table data yet
+            }
+            
+    except Exception as e:
+        import traceback
+        return {
+            "total_items": 0,
+            "total_value": 0.0,
+            "low_stock_count": 0,
+            "out_of_stock_count": 0,
+            "recent_movements": 0,
+            "error": f"Failed to load stats: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
 # EMERGENCY LOGIN ENDPOINT - Bypasses all dependencies
 @app.post("/emergency-login")
 async def emergency_login(login_data: dict):
