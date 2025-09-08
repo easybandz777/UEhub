@@ -102,36 +102,57 @@ async def login(
         settings = get_settings()
         repository = AuthRepository(db)
         
-        # Authenticate user directly
-        user = await repository.get_by_email(login_data.email)
-        if not user or not user.is_active:
+        # NUCLEAR OPTION: Raw SQL to bypass SQLAlchemy ORM issues
+        from sqlalchemy import text
+        from ...core.security import verify_password
+        
+        # Raw SQL query to get user
+        result = await db.execute(
+            text("SELECT id, email, name, password_hash, role, is_active, created_at, updated_at FROM auth_user WHERE email = :email"),
+            {"email": login_data.email}
+        )
+        user_row = result.fetchone()
+        
+        if not user_row or not user_row.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
         
-        if not await repository.verify_password(user, login_data.password):
+        # Verify password directly
+        if not verify_password(login_data.password, user_row.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
         
-        # Create tokens directly
+        # Create tokens directly using raw SQL result
         token_data = {
-            "sub": user.id,
-            "email": user.email,
-            "role": user.role
+            "sub": user_row.id,
+            "email": user_row.email,
+            "role": user_row.role
         }
         
         access_token = create_access_token(token_data)
         refresh_token = create_refresh_token(token_data)
         
+        # Create user response manually
         from .schemas import UserResponse
+        user_response = UserResponse(
+            id=user_row.id,
+            email=user_row.email,
+            name=user_row.name,
+            role=user_row.role,
+            is_active=user_row.is_active,
+            created_at=user_row.created_at,
+            updated_at=user_row.updated_at
+        )
+        
         return LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=settings.auth.access_token_expire_minutes * 60,
-            user=UserResponse.from_orm(user)
+            user=user_response
         )
 
 
