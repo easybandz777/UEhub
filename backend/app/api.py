@@ -94,6 +94,39 @@ async def test_no_auth():
     """Test endpoint with no authentication."""
     return {"message": "This endpoint works without auth", "status": "success"}
 
+@app.get("/test-db")
+async def test_db():
+    """Test database connection."""
+    try:
+        from .core.db import get_db
+        from .modules.auth.repository import AuthRepository
+        
+        async for db in get_db():
+            repo = AuthRepository(db)
+            user = await repo.get_by_email('admin@uehub.com')
+            
+            if user:
+                return {
+                    "status": "success",
+                    "message": "Database connection working",
+                    "user_found": True,
+                    "user_email": user.email,
+                    "user_role": user.role,
+                    "user_active": user.is_active
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "Database connected but admin user not found",
+                    "user_found": False
+                }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Database connection failed: {str(e)}",
+            "user_found": False
+        }
+
 # NUCLEAR TEST - Direct inventory endpoint outside /v1/ prefix
 @app.get("/direct-inventory-test")
 async def direct_inventory_test():
