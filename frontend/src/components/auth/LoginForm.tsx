@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { apiClient } from '@/lib/api'
+import { useAuth } from './AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react'
 
@@ -22,6 +22,7 @@ export default function LoginForm({ onSuccess, showRegisterLink = true }: LoginF
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { login, register } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,21 +31,9 @@ export default function LoginForm({ onSuccess, showRegisterLink = true }: LoginF
 
     try {
       if (isLogin) {
-        await apiClient.login({
-          email: formData.email,
-          password: formData.password
-        })
+        await login(formData.email, formData.password)
       } else {
-        await apiClient.register({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name
-        })
-        // After registration, automatically log in
-        await apiClient.login({
-          email: formData.email,
-          password: formData.password
-        })
+        await register(formData.email, formData.password, formData.name)
       }
 
       if (onSuccess) {
