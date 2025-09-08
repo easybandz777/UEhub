@@ -186,6 +186,27 @@ async def test_auth():
             "traceback": traceback.format_exc()
         }
 
+# TEMPORARY DASHBOARD ENDPOINT - Returns mock data until safety tables are created
+@app.get("/v1/safety/dashboard")
+async def temporary_dashboard():
+    """Temporary dashboard endpoint with mock data."""
+    return {
+        "stats": {
+            "total_checklists": 0,
+            "completed_checklists": 0,
+            "approved_checklists": 0,
+            "pending_approval": 0,
+            "critical_failures_count": 0,
+            "average_completion_rate": 0.0,
+            "checklists_this_month": 0,
+            "checklists_this_week": 0
+        },
+        "recent_checklists": [],
+        "pending_approvals": [],
+        "critical_failures": [],
+        "completion_trend": []
+    }
+
 # EMERGENCY LOGIN ENDPOINT - Bypasses all dependencies
 @app.post("/emergency-login")
 async def emergency_login(login_data: dict):
