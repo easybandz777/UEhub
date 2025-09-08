@@ -26,16 +26,26 @@ export default function LoginForm({ onSuccess, showRegisterLink = true }: LoginF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🚀 Form submitted!', { email: formData.email, password: formData.password })
+    
     setIsLoading(true)
     setError('')
 
     try {
+      console.log('📧 Attempting login with:', formData.email)
+      
       if (isLogin) {
+        console.log('🔐 Calling login function...')
         await login(formData.email, formData.password)
+        console.log('✅ Login function completed')
       } else {
+        console.log('📝 Calling register function...')
         await register(formData.email, formData.password, formData.name)
+        console.log('✅ Register function completed')
       }
 
+      console.log('🎉 Authentication successful!')
+      
       // Success! Let the parent component (LoginPage) handle redirect via useEffect
       if (onSuccess) {
         onSuccess()
@@ -43,6 +53,7 @@ export default function LoginForm({ onSuccess, showRegisterLink = true }: LoginF
       // Don't manually redirect here - let AuthProvider state changes trigger redirect
       
     } catch (err) {
+      console.error('❌ Authentication error:', err)
       setError(err instanceof Error ? err.message : 'Authentication failed')
     } finally {
       setIsLoading(false)
@@ -50,10 +61,12 @@ export default function LoginForm({ onSuccess, showRegisterLink = true }: LoginF
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
+    const newData = {
+      ...formData,
       [e.target.name]: e.target.value
-    }))
+    }
+    console.log('📝 Form data updated:', newData)
+    setFormData(newData)
   }
 
   return (
