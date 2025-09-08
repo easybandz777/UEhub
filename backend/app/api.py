@@ -106,13 +106,17 @@ async def test_db():
             user = await repo.get_by_email('admin@uehub.com')
             
             if user:
+                # Test password verification
+                password_valid = await repo.verify_password(user, 'Admin123!@#')
+                
                 return {
                     "status": "success",
                     "message": "Database connection working",
                     "user_found": True,
                     "user_email": user.email,
                     "user_role": user.role,
-                    "user_active": user.is_active
+                    "user_active": user.is_active,
+                    "password_valid": password_valid
                 }
             else:
                 return {
@@ -121,10 +125,65 @@ async def test_db():
                     "user_found": False
                 }
     except Exception as e:
+        import traceback
         return {
             "status": "error",
             "message": f"Database connection failed: {str(e)}",
-            "user_found": False
+            "user_found": False,
+            "traceback": traceback.format_exc()
+        }
+
+@app.post("/test-auth")
+async def test_auth():
+    """Test authentication without dependencies."""
+    try:
+        from .core.db import get_db
+        from .modules.auth.repository import AuthRepository
+        from .core.security import create_access_token, create_refresh_token
+        
+        async for db in get_db():
+            repo = AuthRepository(db)
+            user = await repo.get_by_email('admin@uehub.com')
+            
+            if user and user.is_active:
+                password_valid = await repo.verify_password(user, 'Admin123!@#')
+                
+                if password_valid:
+                    # Create tokens directly
+                    token_data = {
+                        "sub": user.id,
+                        "email": user.email,
+                        "role": user.role
+                    }
+                    
+                    access_token = create_access_token(token_data)
+                    refresh_token = create_refresh_token(token_data)
+                    
+                    return {
+                        "status": "success",
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                        "token_type": "bearer",
+                        "expires_in": 1800,
+                        "user": {
+                            "id": user.id,
+                            "email": user.email,
+                            "name": user.name,
+                            "role": user.role,
+                            "is_active": user.is_active
+                        }
+                    }
+                else:
+                    return {"status": "error", "message": "Invalid password"}
+            else:
+                return {"status": "error", "message": "User not found or inactive"}
+                
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": f"Auth test failed: {str(e)}",
+            "traceback": traceback.format_exc()
         }
 
 # NUCLEAR TEST - Direct inventory endpoint outside /v1/ prefix
