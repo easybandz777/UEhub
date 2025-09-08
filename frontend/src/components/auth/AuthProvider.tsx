@@ -74,7 +74,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await apiClient.login({ email, password })
       setUser(response.user)
+      console.log('Login successful, user set:', response.user)
+      console.log('Token stored:', apiClient.isAuthenticated())
     } catch (error) {
+      console.error('Login failed:', error)
       throw error
     }
   }

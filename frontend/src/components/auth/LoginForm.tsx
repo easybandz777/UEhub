@@ -36,11 +36,12 @@ export default function LoginForm({ onSuccess, showRegisterLink = true }: LoginF
         await register(formData.email, formData.password, formData.name)
       }
 
+      // Success! Let the parent component (LoginPage) handle redirect via useEffect
       if (onSuccess) {
         onSuccess()
-      } else {
-        router.push('/dashboard')
       }
+      // Don't manually redirect here - let AuthProvider state changes trigger redirect
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed')
     } finally {
