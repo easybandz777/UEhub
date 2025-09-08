@@ -12,7 +12,10 @@ from pydantic_settings import BaseSettings
 class DatabaseSettings(BaseSettings):
     """Database configuration."""
     
-    url: str = Field(..., env="DATABASE_URL")
+    url: str = Field(
+        default="postgresql+asyncpg://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require",
+        env="DATABASE_URL"
+    )
     echo: bool = Field(False, env="DATABASE_ECHO")
     pool_size: int = Field(10, env="DATABASE_POOL_SIZE")
     max_overflow: int = Field(20, env="DATABASE_MAX_OVERFLOW")
@@ -39,7 +42,10 @@ class RedisSettings(BaseSettings):
 class AuthSettings(BaseSettings):
     """Authentication configuration."""
     
-    secret_key: str = Field(..., env="SECRET_KEY")
+    secret_key: str = Field(
+        default="uehub-super-secret-key-for-jwt-tokens-minimum-32-characters-long-production-ready",
+        env="SECRET_KEY"
+    )
     algorithm: str = Field("HS256", env="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(7, env="REFRESH_TOKEN_EXPIRE_DAYS")
