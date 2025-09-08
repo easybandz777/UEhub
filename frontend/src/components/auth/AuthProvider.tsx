@@ -34,6 +34,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter()
 
   const isAuthenticated = !!user && apiClient.isAuthenticated()
+  
+  // Debug logging
+  console.log('AuthProvider state - user:', !!user, 'token:', apiClient.isAuthenticated(), 'isAuthenticated:', isAuthenticated)
 
   useEffect(() => {
     initializeAuth()
@@ -72,10 +75,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Starting login...')
       const response = await apiClient.login({ email, password })
+      console.log('API login response:', response)
+      
       setUser(response.user)
-      console.log('Login successful, user set:', response.user)
+      console.log('User state set to:', response.user)
       console.log('Token stored:', apiClient.isAuthenticated())
+      console.log('User from localStorage:', apiClient.getCurrentUserFromStorage())
+      
+      // Force a re-render to check state
+      setTimeout(() => {
+        console.log('After timeout - user state:', user)
+        console.log('After timeout - isAuthenticated:', !!user && apiClient.isAuthenticated())
+      }, 100)
+      
     } catch (error) {
       console.error('Login failed:', error)
       throw error
