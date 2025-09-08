@@ -247,18 +247,35 @@ export class ApiClient {
   }
 
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await this.xhrRequest<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-      requireAuth: false
-    })
+    // Try emergency login endpoint first
+    try {
+      const response = await this.xhrRequest<LoginResponse>('/emergency-login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        requireAuth: false
+      })
 
-    // Store tokens and user
-    AuthStorage.setAccessToken(response.access_token)
-    AuthStorage.setRefreshToken(response.refresh_token)
-    AuthStorage.setUser(response.user)
+      // Store tokens and user
+      AuthStorage.setAccessToken(response.access_token)
+      AuthStorage.setRefreshToken(response.refresh_token)
+      AuthStorage.setUser(response.user)
 
-    return response
+      return response
+    } catch (error) {
+      // Fallback to regular auth endpoint
+      const response = await this.xhrRequest<LoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        requireAuth: false
+      })
+
+      // Store tokens and user
+      AuthStorage.setAccessToken(response.access_token)
+      AuthStorage.setRefreshToken(response.refresh_token)
+      AuthStorage.setUser(response.user)
+
+      return response
+    }
   }
 
   async logout(): Promise<void> {

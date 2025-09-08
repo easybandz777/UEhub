@@ -186,6 +186,66 @@ async def test_auth():
             "traceback": traceback.format_exc()
         }
 
+# EMERGENCY LOGIN ENDPOINT - Bypasses all dependencies
+@app.post("/emergency-login")
+async def emergency_login(login_data: dict):
+    """Emergency login endpoint that bypasses all complex dependencies."""
+    try:
+        email = login_data.get("email")
+        password = login_data.get("password")
+        
+        if not email or not password:
+            return {"error": "Email and password required"}, 400
+        
+        from .core.db import get_db
+        from .modules.auth.repository import AuthRepository
+        from .core.security import create_access_token, create_refresh_token
+        
+        async for db in get_db():
+            repo = AuthRepository(db)
+            user = await repo.get_by_email(email)
+            
+            if user and user.is_active:
+                password_valid = await repo.verify_password(user, password)
+                
+                if password_valid:
+                    # Create tokens directly
+                    token_data = {
+                        "sub": user.id,
+                        "email": user.email,
+                        "role": user.role
+                    }
+                    
+                    access_token = create_access_token(token_data)
+                    refresh_token = create_refresh_token(token_data)
+                    
+                    return {
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                        "token_type": "bearer",
+                        "expires_in": 1800,
+                        "user": {
+                            "id": user.id,
+                            "email": user.email,
+                            "name": user.name,
+                            "role": user.role,
+                            "is_active": user.is_active,
+                            "created_at": user.created_at.isoformat(),
+                            "updated_at": user.updated_at.isoformat()
+                        }
+                    }
+                else:
+                    return {"detail": "Invalid email or password"}, 401
+            else:
+                return {"detail": "Invalid email or password"}, 401
+                
+    except Exception as e:
+        import traceback
+        return {
+            "detail": f"Login failed: {str(e)}",
+            "traceback": traceback.format_exc()
+        }, 500
+
 # NUCLEAR TEST - Direct inventory endpoint outside /v1/ prefix
 @app.get("/direct-inventory-test")
 async def direct_inventory_test():
