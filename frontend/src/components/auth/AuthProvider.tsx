@@ -44,10 +44,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const initializeAuth = async () => {
     try {
+      console.log('🔄 Initializing auth...')
+      
       // Check if we have a stored user and token
       const storedUser = apiClient.getCurrentUserFromStorage()
-      if (storedUser && apiClient.isAuthenticated()) {
-        // Verify the token is still valid by fetching current user
+      const hasToken = apiClient.isAuthenticated()
+      
+      console.log('📦 Stored user:', storedUser)
+      console.log('🎫 Has token:', hasToken)
+      
+      if (storedUser && hasToken) {
+        console.log('✅ Found stored user and token, setting user state...')
+        setUser(storedUser)
+        
+        // Optional: Verify the token is still valid by fetching current user
+        // For now, just trust the stored user to avoid API calls on every page load
+        /*
         try {
           const currentUser = await apiClient.getCurrentUser()
           setUser(currentUser)
@@ -63,6 +75,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUser(null)
           }
         }
+        */
+      } else {
+        console.log('❌ No stored user or token found')
+        setUser(null)
       }
     } catch (error) {
       console.error('Auth initialization error:', error)
@@ -70,6 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null)
     } finally {
       setIsLoading(false)
+      console.log('🏁 Auth initialization complete')
     }
   }
 
