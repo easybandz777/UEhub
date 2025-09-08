@@ -1,0 +1,93 @@
+# Production Docker Compose for DigitalOcean Droplet
+version: '3.8'
+
+services:
+  # Caddy reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=/api
+      - NEXT_PUBLIC_APP_NAME=UE Hub
+    depends_on:
+      - backend
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.backend
+    restart: unless-stopped
+    environment:
+      # Use your existing Neon database
+      - DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=uehub-super-secret-production-key-minimum-32-characters-long-change-this
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - NEON_API_ENDPOINT=https://ep-odd-tree-adxsa81s.apirest.c-2.us-east-1.aws.neon.tech/neondb/rest/v1
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching and events
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Background worker
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=uehub-super-secret-production-key-minimum-32-characters-long-change-this
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      - redis
+      - backend
+    command: ["python", "-m", "worker.main"]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  redis_data:
+  backend_uploads:

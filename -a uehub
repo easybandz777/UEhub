@@ -1,0 +1,5 @@
+[33ma43eb4b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m  Fix CORS issues with Next.js proxy rewrites - Login should work now
+[33m4e28bde[m Fix database models and add production setup script - CRITICAL FIX for login issues
+[33mb722ab1[m Update backend API configuration
+[33mef641ca[m Fix TypeScript headers type error in API client
+[33m3cf24e0[m Fix function hoisting error in safety checklists page

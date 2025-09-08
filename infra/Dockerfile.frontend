@@ -1,0 +1,71 @@
+# Multi-stage build for Next.js Frontend
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Install dependencies
+COPY frontend/package*.json ./
+RUN npm ci --only=production
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY frontend/ .
+
+# Update next.config.js for production (remove external rewrites)
+RUN echo '/** @type {import("next").NextConfig} */' > next.config.js && \
+    echo 'const nextConfig = {' >> next.config.js && \
+    echo '  env: {' >> next.config.js && \
+    echo '    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "/api",' >> next.config.js && \
+    echo '    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || "UE Hub",' >> next.config.js && \
+    echo '    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0",' >> next.config.js && \
+    echo '  },' >> next.config.js && \
+    echo '  images: {' >> next.config.js && \
+    echo '    domains: ["localhost"],' >> next.config.js && \
+    echo '  },' >> next.config.js && \
+    echo '  output: "standalone",' >> next.config.js && \
+    echo '  webpack: (config, { isServer }) => {' >> next.config.js && \
+    echo '    if (!isServer) {' >> next.config.js && \
+    echo '      config.resolve.fallback = {' >> next.config.js && \
+    echo '        ...config.resolve.fallback,' >> next.config.js && \
+    echo '        fs: false,' >> next.config.js && \
+    echo '        net: false,' >> next.config.js && \
+    echo '        tls: false,' >> next.config.js && \
+    echo '      }' >> next.config.js && \
+    echo '    }' >> next.config.js && \
+    echo '    return config' >> next.config.js && \
+    echo '  },' >> next.config.js && \
+    echo '}' >> next.config.js && \
+    echo 'module.exports = nextConfig' >> next.config.js
+
+# Build the application
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN npm run build
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built application
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]
