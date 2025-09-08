@@ -4,5 +4,11 @@
     "app/**": {
       "runtime": "nodejs20.x"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://uehub.fly.dev/$1"
+    }
+  ]
 }
