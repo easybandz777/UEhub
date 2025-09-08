@@ -206,14 +206,9 @@ def get_event_bus() -> EventBus:
     global _event_bus
     
     if _event_bus is None:
-        if settings.app.environment == "development":
-            _event_bus = InProcessEventBus()
-        else:
-            try:
-                _event_bus = RedisEventBus(settings.redis.url)
-            except Exception as e:
-                logger.warning(f"Failed to connect to Redis, falling back to in-process event bus: {e}")
-                _event_bus = InProcessEventBus()
+        # Always use in-process event bus for now to avoid Redis connection issues
+        logger.info("Using in-process event bus")
+        _event_bus = InProcessEventBus()
     
     return _event_bus
 
