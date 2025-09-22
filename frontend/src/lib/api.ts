@@ -1,4 +1,14 @@
-const DIRECT_API_URL = '/api/v1'
+// Determine API base URL at runtime
+// Prefer public env var (absolute, e.g., https://api.echelonx.tech) to avoid proxy header issues
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  if (envUrl && envUrl.trim().length > 0) {
+    const trimmed = envUrl.replace(/\/$/, '')
+    return `${trimmed}/v1`
+  }
+  // Fallback to Next.js rewrite proxy
+  return '/api/v1'
+}
 
 // Types
 export interface User {
@@ -170,7 +180,7 @@ export class ApiClient {
   private baseUrl: string
 
   constructor() {
-    this.baseUrl = DIRECT_API_URL
+    this.baseUrl = resolveApiBaseUrl()
   }
 
   // Lightweight axios-like helpers returning { data }
