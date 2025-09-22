@@ -19,6 +19,13 @@ settings = get_settings()
 connect_args = {}
 database_url = settings.database.url
 
+# Ensure we're using asyncpg driver for async operations
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif not database_url.startswith("postgresql+asyncpg://"):
+    # If it's already postgresql+asyncpg://, keep it as is
+    pass
+
 # Handle Neon SSL configuration
 if "postgresql" in database_url and "neon" in database_url:
     # Remove any sslmode parameters from URL and handle via connect_args
@@ -58,6 +65,10 @@ else:
 # Create sync engine for Alembic
 sync_database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
 sync_connect_args = {}
+
+# Ensure sync URL uses psycopg2 (default PostgreSQL driver for sync operations)
+if sync_database_url.startswith("postgresql+asyncpg://"):
+    sync_database_url = sync_database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
 if "postgresql" in sync_database_url and "neon" in sync_database_url:
     sync_connect_args = {
