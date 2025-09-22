@@ -257,6 +257,59 @@ async def temporary_inventory_list():
             "traceback": traceback.format_exc()
         }
 
+@app.post("/v1/inventory/")
+async def temporary_inventory_create(item_data: dict):
+    """Temporary inventory creation endpoint using raw SQL."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        import uuid
+        
+        async for db in get_db():
+            # Generate UUID for new item
+            item_id = str(uuid.uuid4())
+            
+            # Insert new inventory item using raw SQL
+            await db.execute(
+                text("""
+                    INSERT INTO inventory_items (id, sku, name, location, barcode, qty, min_qty, created_at, updated_at)
+                    VALUES (:id, :sku, :name, :location, :barcode, :qty, :min_qty, NOW(), NOW())
+                """),
+                {
+                    "id": item_id,
+                    "sku": item_data.get("sku", ""),
+                    "name": item_data.get("name", ""),
+                    "location": item_data.get("location", ""),
+                    "barcode": item_data.get("barcode"),
+                    "qty": item_data.get("qty", 0),
+                    "min_qty": item_data.get("min_qty", 0)
+                }
+            )
+            
+            # Commit the transaction
+            await db.commit()
+            
+            # Return the created item
+            return {
+                "id": item_id,
+                "sku": item_data.get("sku", ""),
+                "name": item_data.get("name", ""),
+                "location": item_data.get("location", ""),
+                "barcode": item_data.get("barcode"),
+                "qty": item_data.get("qty", 0),
+                "min_qty": item_data.get("min_qty", 0),
+                "is_low_stock": item_data.get("qty", 0) <= item_data.get("min_qty", 0),
+                "created_at": None,  # Will be set by database
+                "updated_at": None   # Will be set by database
+            }
+            
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Failed to create inventory item: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
 @app.get("/v1/inventory/stats")
 async def temporary_inventory_stats():
     """Temporary inventory stats endpoint using raw SQL."""
