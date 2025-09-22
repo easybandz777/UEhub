@@ -44,7 +44,7 @@ export function JobSiteManager() {
   const loadJobSites = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.get('/timeclock/job-sites')
+      const response = await apiClient.get<JobSite[]>('/timeclock/job-sites')
       setJobSites(response.data)
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to load job sites')
@@ -76,7 +76,7 @@ export function JobSiteManager() {
   const handleShowQR = async (jobSite: JobSite) => {
     try {
       setLoading(true)
-      const response = await apiClient.get(`/timeclock/job-sites/${jobSite.id}/qr`)
+      const response = await apiClient.get<JobSiteWithQR>(`/timeclock/job-sites/${jobSite.id}/qr`)
       setSelectedJobSite(response.data)
       setIsQRDialogOpen(true)
     } catch (error: any) {
