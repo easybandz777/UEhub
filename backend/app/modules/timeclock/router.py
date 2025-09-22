@@ -8,7 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from ...core.db import get_db
+from ...core.db import get_sync_db
 from ...core.security import get_current_user, require_role
 from ..auth.models import User
 from .repository import TimeclockRepository
@@ -22,7 +22,7 @@ from .schemas import (
 router = APIRouter()
 
 
-def get_timeclock_repository(db: Session = Depends(get_db)) -> TimeclockRepository:
+def get_timeclock_repository(db: Session = Depends(get_sync_db)) -> TimeclockRepository:
     """Get timeclock repository."""
     return TimeclockRepository(db)
 
