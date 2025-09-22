@@ -90,4 +90,4 @@ jobs:
       - name: Health check
         run: |
           sleep 30
-          curl -f https://ue-hub-backend.fly.dev/health || exit 1
+          curl -f https://uehub.fly.dev/health || exit 1
