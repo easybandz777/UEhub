@@ -317,6 +317,303 @@ async def temporary_inventory_create(item_data: dict):
             "traceback": traceback.format_exc()
         }
 
+# USER MANAGEMENT ENDPOINTS - For super admin only
+@app.get("/v1/admin/test")
+async def test_admin_endpoint():
+    """Test endpoint to verify admin routes are working."""
+    return {"message": "Admin endpoints are working!", "status": "success"}
+
+@app.get("/v1/admin/users")
+async def get_all_users():
+    """Get all users - Super admin only."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        # TODO: Add super admin role check
+        # For now, return all users
+        
+        async for db in get_db():
+            result = await db.execute(
+                text("""
+                    SELECT id, email, name, role, is_active, created_at, updated_at, 
+                           phone, department, notes
+                    FROM auth_user 
+                    ORDER BY created_at DESC
+                """)
+            )
+            rows = result.fetchall()
+            
+            users = []
+            for row in rows:
+                users.append({
+                    "id": row.id,
+                    "email": row.email,
+                    "name": row.name,
+                    "role": row.role,
+                    "is_active": row.is_active,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+                    "phone": row.phone,
+                    "department": row.department,
+                    "notes": row.notes
+                })
+            
+            return {
+                "users": users,
+                "total": len(users)
+            }
+            
+    except Exception as e:
+        import traceback
+        return {
+            "users": [],
+            "total": 0,
+            "error": f"Failed to load users: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+@app.post("/v1/admin/users")
+async def create_user(user_data: dict):
+    """Create a new user - Super admin only."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        from passlib.context import CryptContext
+        import uuid
+        
+        # TODO: Add super admin role check
+        
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
+        async for db in get_db():
+            # Check if email already exists
+            existing_result = await db.execute(
+                text("SELECT id FROM auth_user WHERE email = :email"),
+                {"email": user_data.get("email")}
+            )
+            if existing_result.fetchone():
+                return {"error": "Email already exists"}
+            
+            # Generate UUID for new user
+            user_id = str(uuid.uuid4())
+            
+            # Hash password
+            hashed_password = pwd_context.hash(user_data.get("password", "DefaultPass123!"))
+            
+            # Insert new user
+            await db.execute(
+                text("""
+                    INSERT INTO auth_user (id, email, name, password_hash, role, is_active, 
+                                         phone, department, notes, created_at, updated_at)
+                    VALUES (:id, :email, :name, :password_hash, :role, :is_active, 
+                           :phone, :department, :notes, NOW(), NOW())
+                """),
+                {
+                    "id": user_id,
+                    "email": user_data.get("email"),
+                    "name": user_data.get("name"),
+                    "password_hash": hashed_password,
+                    "role": user_data.get("role", "employee"),
+                    "is_active": user_data.get("is_active", True),
+                    "phone": user_data.get("phone"),
+                    "department": user_data.get("department"),
+                    "notes": user_data.get("notes")
+                }
+            )
+            
+            await db.commit()
+            
+            return {
+                "id": user_id,
+                "email": user_data.get("email"),
+                "name": user_data.get("name"),
+                "role": user_data.get("role", "employee"),
+                "is_active": user_data.get("is_active", True),
+                "phone": user_data.get("phone"),
+                "department": user_data.get("department"),
+                "notes": user_data.get("notes"),
+                "message": "User created successfully"
+            }
+            
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Failed to create user: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+@app.put("/v1/admin/users/{user_id}")
+async def update_user(user_id: str, user_data: dict):
+    """Update a user - Super admin only."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        from passlib.context import CryptContext
+        
+        # TODO: Add super admin role check
+        
+        async for db in get_db():
+            # Check if user exists
+            existing_result = await db.execute(
+                text("SELECT id FROM auth_user WHERE id = :user_id"),
+                {"user_id": user_id}
+            )
+            if not existing_result.fetchone():
+                return {"error": "User not found"}
+            
+            # Build update query dynamically
+            update_fields = []
+            params = {"user_id": user_id}
+            
+            if "name" in user_data:
+                update_fields.append("name = :name")
+                params["name"] = user_data["name"]
+            
+            if "email" in user_data:
+                update_fields.append("email = :email")
+                params["email"] = user_data["email"]
+            
+            if "role" in user_data:
+                update_fields.append("role = :role")
+                params["role"] = user_data["role"]
+            
+            if "is_active" in user_data:
+                update_fields.append("is_active = :is_active")
+                params["is_active"] = user_data["is_active"]
+            
+            if "phone" in user_data:
+                update_fields.append("phone = :phone")
+                params["phone"] = user_data["phone"]
+            
+            if "department" in user_data:
+                update_fields.append("department = :department")
+                params["department"] = user_data["department"]
+            
+            if "notes" in user_data:
+                update_fields.append("notes = :notes")
+                params["notes"] = user_data["notes"]
+            
+            if "password" in user_data:
+                pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+                hashed_password = pwd_context.hash(user_data["password"])
+                update_fields.append("password_hash = :password_hash")
+                params["password_hash"] = hashed_password
+            
+            if update_fields:
+                update_fields.append("updated_at = NOW()")
+                query = f"UPDATE auth_user SET {', '.join(update_fields)} WHERE id = :user_id"
+                
+                await db.execute(text(query), params)
+                await db.commit()
+            
+            return {"message": "User updated successfully"}
+            
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Failed to update user: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+@app.delete("/v1/admin/users/{user_id}")
+async def delete_user(user_id: str):
+    """Delete a user - Super admin only."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        # TODO: Add super admin role check
+        
+        async for db in get_db():
+            # Check if user exists
+            existing_result = await db.execute(
+                text("SELECT id FROM auth_user WHERE id = :user_id"),
+                {"user_id": user_id}
+            )
+            if not existing_result.fetchone():
+                return {"error": "User not found"}
+            
+            # Soft delete - set is_active to false
+            await db.execute(
+                text("UPDATE auth_user SET is_active = false, updated_at = NOW() WHERE id = :user_id"),
+                {"user_id": user_id}
+            )
+            await db.commit()
+            
+            return {"message": "User deactivated successfully"}
+            
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Failed to delete user: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+@app.get("/v1/admin/users/{user_id}/inventory")
+async def get_user_inventory(user_id: str):
+    """Get inventory for a specific user - Super admin only."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        # TODO: Add super admin role check
+        
+        async for db in get_db():
+            # Get user info
+            user_result = await db.execute(
+                text("SELECT name, email FROM auth_user WHERE id = :user_id"),
+                {"user_id": user_id}
+            )
+            user_row = user_result.fetchone()
+            if not user_row:
+                return {"error": "User not found"}
+            
+            # Get user's inventory
+            inventory_result = await db.execute(
+                text("""
+                    SELECT id, sku, name, location, barcode, qty, min_qty, created_at, updated_at
+                    FROM inventory_items 
+                    WHERE user_id = :user_id 
+                    ORDER BY created_at DESC
+                """),
+                {"user_id": user_id}
+            )
+            rows = inventory_result.fetchall()
+            
+            items = []
+            for row in rows:
+                items.append({
+                    "id": str(row.id),
+                    "sku": row.sku,
+                    "name": row.name,
+                    "location": row.location,
+                    "barcode": row.barcode,
+                    "qty": row.qty,
+                    "min_qty": row.min_qty,
+                    "is_low_stock": row.qty <= row.min_qty,
+                    "updated_at": row.updated_at.isoformat() if row.updated_at else None
+                })
+            
+            return {
+                "user": {
+                    "id": user_id,
+                    "name": user_row.name,
+                    "email": user_row.email
+                },
+                "inventory": {
+                    "items": items,
+                    "total": len(items)
+                }
+            }
+            
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Failed to load user inventory: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
 @app.get("/v1/inventory/stats")
 async def temporary_inventory_stats():
     """Temporary inventory stats endpoint using raw SQL."""
