@@ -85,9 +85,13 @@ const DialogFooter = ({
 )
 DialogFooter.displayName = "DialogFooter"
 
+type DialogTitleProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> & {
+  children?: React.ReactNode
+}
+
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+  DialogTitleProps
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
@@ -100,9 +104,13 @@ const DialogTitle = React.forwardRef<
 ))
 DialogTitle.displayName = DialogPrimitive.Title.displayName
 
+type DialogDescriptionProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description> & {
+  children?: React.ReactNode
+}
+
 const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+  DialogDescriptionProps
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
