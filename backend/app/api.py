@@ -209,6 +209,7 @@ async def temporary_dashboard():
     }
 
 # TEMPORARY INVENTORY ENDPOINTS - Bypass SQLAlchemy ORM issues with raw SQL
+@app.get("/v1/inventory")
 @app.get("/v1/inventory/")
 async def temporary_inventory_list():
     """Temporary inventory list endpoint using raw SQL."""
@@ -257,6 +258,7 @@ async def temporary_inventory_list():
             "traceback": traceback.format_exc()
         }
 
+@app.post("/v1/inventory")
 @app.post("/v1/inventory/")
 async def temporary_inventory_create(item_data: dict):
     """Temporary inventory creation endpoint using raw SQL."""
