@@ -218,7 +218,7 @@ async def temporary_inventory_list():
         from sqlalchemy import text
         
         async for db in get_db():
-            # Raw SQL query to get inventory items
+            # For now, get all inventory items (we'll add user filtering later)
             result = await db.execute(
                 text("SELECT id, sku, name, location, barcode, qty, min_qty, created_at, updated_at FROM inventory_items ORDER BY created_at DESC")
             )
@@ -267,15 +267,19 @@ async def temporary_inventory_create(item_data: dict):
         from sqlalchemy import text
         import uuid
         
+        # TODO: Get user_id from authentication token
+        # For now, use a default user_id (we'll fix this when auth is working)
+        user_id = "4d9de4a3-3f04-4f4b-85f6-71f8e7bd73f8"  # Default to admin user for now
+        
         async for db in get_db():
             # Generate UUID for new item
             item_id = str(uuid.uuid4())
             
-            # Insert new inventory item using raw SQL
+            # Insert new inventory item using raw SQL with user_id
             await db.execute(
                 text("""
-                    INSERT INTO inventory_items (id, sku, name, location, barcode, qty, min_qty, created_at, updated_at)
-                    VALUES (:id, :sku, :name, :location, :barcode, :qty, :min_qty, NOW(), NOW())
+                    INSERT INTO inventory_items (id, sku, name, location, barcode, qty, min_qty, user_id, created_at, updated_at)
+                    VALUES (:id, :sku, :name, :location, :barcode, :qty, :min_qty, :user_id, NOW(), NOW())
                 """),
                 {
                     "id": item_id,
@@ -284,7 +288,8 @@ async def temporary_inventory_create(item_data: dict):
                     "location": item_data.get("location", ""),
                     "barcode": item_data.get("barcode"),
                     "qty": item_data.get("qty", 0),
-                    "min_qty": item_data.get("min_qty", 0)
+                    "min_qty": item_data.get("min_qty", 0),
+                    "user_id": user_id
                 }
             )
             
