@@ -5,13 +5,14 @@ Main FastAPI application.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from .core.health import router as health_router
 from .core.settings import get_settings
 from .core.sentry import init_sentry
+from .core.security import get_current_user
 from .modules.auth.router import router as auth_router
 from .modules.inventory.router import router as inventory_router
 from .modules.safety.router import router as safety_router
@@ -208,68 +209,90 @@ async def temporary_dashboard():
         "completion_trend": []
     }
 
-# TEMPORARY INVENTORY ENDPOINTS - Bypass SQLAlchemy ORM issues with raw SQL
-@app.get("/v1/inventory")
-@app.get("/v1/inventory/")
-async def temporary_inventory_list():
-    """Temporary inventory list endpoint using raw SQL."""
-    try:
-        from .core.db import get_db
-        from sqlalchemy import text
-        
-        async for db in get_db():
-            # For now, get all inventory items (we'll add user filtering later)
-            result = await db.execute(
-                text("SELECT id, sku, name, location, barcode, qty, min_qty, created_at, updated_at FROM inventory_items ORDER BY created_at DESC")
-            )
-            rows = result.fetchall()
+    # TEMPORARY INVENTORY ENDPOINTS - Bypass SQLAlchemy ORM issues with raw SQL
+    @app.get("/v1/inventory")
+    @app.get("/v1/inventory/")
+    async def temporary_inventory_list(current_user: dict = Depends(get_current_user)):
+        """Temporary inventory list endpoint using raw SQL with user filtering."""
+        try:
+            from .core.db import get_db
+            from sqlalchemy import text
             
-            items = []
-            for row in rows:
-                items.append({
-                    "id": str(row.id),
-                    "sku": row.sku,
-                    "name": row.name,
-                    "location": row.location,
-                    "barcode": row.barcode,
-                    "qty": row.qty,
-                    "min_qty": row.min_qty,
-                    "is_low_stock": row.qty <= row.min_qty,
-                    "updated_at": row.updated_at.isoformat() if row.updated_at else None
-                })
-            
+            async for db in get_db():
+                # Admin users can see all inventory, others see only their own
+                if current_user.get("role") == "admin":
+                    # Admin sees all inventory with user information
+                    result = await db.execute(
+                        text("""
+                            SELECT i.id, i.sku, i.name, i.location, i.barcode, i.qty, i.min_qty, 
+                                   i.created_at, i.updated_at, i.user_id, u.name as user_name, u.email as user_email
+                            FROM inventory_items i 
+                            LEFT JOIN auth_user u ON i.user_id = u.id 
+                            ORDER BY i.created_at DESC
+                        """)
+                    )
+                else:
+                    # Regular users see only their own inventory
+                    result = await db.execute(
+                        text("""
+                            SELECT id, sku, name, location, barcode, qty, min_qty, created_at, updated_at, user_id
+                            FROM inventory_items 
+                            WHERE user_id = :user_id 
+                            ORDER BY created_at DESC
+                        """),
+                        {"user_id": current_user.get("id")}
+                    )
+                rows = result.fetchall()
+                
+                items = []
+                for row in rows:
+                    item_data = {
+                        "id": str(row.id),
+                        "sku": row.sku,
+                        "name": row.name,
+                        "location": row.location,
+                        "barcode": row.barcode,
+                        "qty": row.qty,
+                        "min_qty": row.min_qty,
+                        "is_low_stock": row.qty <= row.min_qty,
+                        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+                        "user_id": row.user_id
+                    }
+                    if current_user.get("role") == "admin":
+                        item_data["user_name"] = row.user_name
+                        item_data["user_email"] = row.user_email
+                    items.append(item_data)
+                
+                return {
+                    "items": items,
+                    "total": len(items),
+                    "page": 1,
+                    "per_page": 50,
+                    "pages": 1
+                }
+                
+        except Exception as e:
+            import traceback
             return {
-                "items": items,
-                "total": len(items),
+                "items": [],
+                "total": 0,
                 "page": 1,
                 "per_page": 50,
-                "pages": 1
+                "pages": 1,
+                "error": f"Failed to load inventory: {str(e)}",
+                "traceback": traceback.format_exc()
             }
-            
-    except Exception as e:
-        import traceback
-        return {
-            "items": [],
-            "total": 0,
-            "page": 1,
-            "per_page": 50,
-            "pages": 1,
-            "error": f"Failed to load inventory: {str(e)}",
-            "traceback": traceback.format_exc()
-        }
 
 @app.post("/v1/inventory")
 @app.post("/v1/inventory/")
-async def temporary_inventory_create(item_data: dict):
+async def temporary_inventory_create(item_data: dict, current_user: dict = Depends(get_current_user)):
     """Temporary inventory creation endpoint using raw SQL."""
     try:
         from .core.db import get_db
         from sqlalchemy import text
         import uuid
         
-        # TODO: Get user_id from authentication token
-        # For now, use a default user_id (we'll fix this when auth is working)
-        user_id = "4d9de4a3-3f04-4f4b-85f6-71f8e7bd73f8"  # Default to admin user for now
+        user_id = current_user.get("id")
         
         async for db in get_db():
             # Generate UUID for new item
