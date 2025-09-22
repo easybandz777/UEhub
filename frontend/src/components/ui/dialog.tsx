@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
   children?: React.ReactNode
+  className?: string
 }
 
 const Dialog = DialogPrimitive.Root
