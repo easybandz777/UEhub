@@ -12,7 +12,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://uehub.fly.dev/:path*',
+        destination: 'https://api.echelonx.tech/:path*',
       },
     ]
   },
