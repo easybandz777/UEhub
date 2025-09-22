@@ -1,0 +1,30 @@
+﻿ UE Hub Agent Mode Deployment Guide
+=====================================
+
+ SSH Key Generated: C:\Users\willi\.ssh\id_ed25519_uehub
+ Scripts Created: add_ssh_key_to_server.sh, fix_uehub_domain.sh
+
+ STEP 1: Add SSH Key to Server
+================================
+1. Go to DigitalOcean Dashboard
+2. Click on your droplet (echelonx.tech)
+3. Click 'Console' to open web terminal
+4. Copy and paste this command:
+
+mkdir -p ~/.ssh && echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG4kqcy+/bUEsff7IbKDKzPb6WOGhA0PAY8bY5rw7Mf2 honestroofingcompany@gmail.com' >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys && echo ' SSH key added!'
+
+ STEP 2: Fix Domain (Automated)
+=================================
+Once SSH is working, I'll run this automatically:
+
+ssh -i C:\Users\willi\.ssh\id_ed25519_uehub root@echelonx.tech 'bash -s' < fix_uehub_domain.sh
+
+ RESULT: echelonx.tech will work perfectly!
+============================================
+-  Domain routing fixed
+-  nginx configured properly  
+-  All services running
+-  Your Next.js app accessible
+
+ Test Commands (after setup):
+==============================

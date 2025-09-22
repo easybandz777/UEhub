@@ -1,4 +1,364 @@
+# 🔧 UE Hub Deployment & Configuration Debugging Rules
+
+This document provides systematic debugging rules based on **real deployment issues** encountered in the UE Hub project.
+
+## 🎯 Critical Issue Priority Matrix
+
+### 1. **PRIORITY 1: Application Startup Failures** 
+These prevent the app from starting at all (502 errors, crashed containers)
+
+### 2. **PRIORITY 2: Dependency & Version Conflicts**
+These cause runtime errors after startup
+
+### 3. **PRIORITY 3: Configuration & Environment Issues**
+These cause feature-specific failures
+
+## 🚨 Real-World Problem Patterns & Solutions
+
+### **Problem Pattern 1: Pydantic Version Conflicts**
+
+**Symptoms**:
+- `PydanticUserError: 'regex' is removed. use 'pattern' instead`
+- Application crashes on import
+- 502 errors from deployment platform
+
+**Root Cause**: Pydantic v2 deprecated `regex` parameter in favor of `pattern`
+
+**Debug Steps**:
+```bash
+# 1. Check Pydantic version
+pip show pydantic
+
+# 2. Search for deprecated regex usage
+grep -r "regex=" backend/app/ --include="*.py"
+
+# 3. Test schema validation locally
+cd backend
+python -c "
+from app.modules.auth.schemas import UserBase
+print('Schema imports successfully')
+"
+```
+
+**Solution**:
+```python
+# OLD (Pydantic v1)
+role: str = Field(..., regex="^(admin|manager|worker)$")
+
+# NEW (Pydantic v2)
+role: str = Field(..., pattern="^(admin|manager|worker)$")
+```
+
+**Prevention**:
+- Pin Pydantic version in `pyproject.toml`
+- Add schema validation tests
+- Use dependency scanning tools
+
 ---
+
+### **Problem Pattern 2: Fly.io Deployment Hanging**
+
+**Symptoms**:
+- `Waiting for machine to become healthy` loops indefinitely
+- Machine reaches max restart count
+- Health checks fail silently
+
+**Root Cause**: Application fails to start, health check endpoint unreachable
+
+**Debug Steps**:
+```bash
+# 1. Check machine status
+fly status -a <app-name>
+
+# 2. Get real-time logs (not cached)
+fly logs -a <app-name> --no-tail
+
+# 3. Check health endpoint configuration
+cat infra/fly.toml | grep -A 10 "checks"
+
+# 4. Test health endpoint locally
+curl -f http://localhost:8000/health
+```
+
+**Solution Strategy**:
+```bash
+# 1. Stop hanging deployment
+# Ctrl+C to interrupt
+
+# 2. Check machine restart count
+fly machine list -a <app-name>
+
+# 3. If max restarts reached, destroy and recreate
+fly machine destroy <machine-id> -a <app-name>
+fly deploy --config infra/fly.toml
+
+# 4. Monitor fresh deployment
+fly logs -a <app-name>
+```
+
+---
+
+### **Problem Pattern 3: Missing Dependencies in Production**
+
+**Symptoms**:
+- `ModuleNotFoundError: No module named 'asyncpg'`
+- Import errors that don't occur locally
+- Different behavior between dev and prod
+
+**Root Cause**: Dependencies not properly installed in container
+
+**Debug Steps**:
+```bash
+# 1. Check if dependency is in pyproject.toml
+grep "asyncpg" backend/pyproject.toml
+
+# 2. Verify Docker build includes all deps
+docker build -f infra/Dockerfile.backend .
+
+# 3. Check container contents
+fly ssh console -a <app-name>
+pip list | grep asyncpg
+```
+
+**Solution**:
+```toml
+# Ensure in pyproject.toml dependencies
+dependencies = [
+    "asyncpg>=0.29.0",  # Critical for async PostgreSQL
+    # ... other deps
+]
+```
+
+---
+
+### **Problem Pattern 4: Environment Variable Loading Issues**
+
+**Symptoms**:
+- Settings using default values instead of env vars
+- Database connection failures
+- Authentication errors
+
+**Debug Steps**:
+```bash
+# 1. Check env file exists and format
+cat backend/.env | head -5
+
+# 2. Test settings loading
+cd backend
+python -c "
+from app.core.settings import get_settings
+s = get_settings()
+print(f'Environment: {s.app.environment}')
+print(f'Database URL set: {bool(s.database.url)}')
+"
+
+# 3. Check for environment conflicts
+env | grep DATABASE_URL
+```
+
+**Solution Pattern**:
+```python
+# Use proper Pydantic settings pattern
+class Settings(BaseSettings):
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
+```
+
+## 🔍 Systematic Debugging Workflow
+
+### **Step 1: Identify Error Category**
+```bash
+# Get the actual error message
+fly logs -a <app-name> | tail -50
+
+# Categorize the error:
+# - Import/Module errors → Dependency issue
+# - Pydantic/Schema errors → Version conflict  
+# - Connection errors → Environment/Config issue
+# - Health check failures → Application startup issue
+```
+
+### **Step 2: Local Reproduction**
+```bash
+# Try to reproduce locally first
+cd backend
+python -m uvicorn app.api:app --host 0.0.0.0 --port 8000
+
+# If it works locally but fails in production:
+# → Environment difference
+# If it fails locally too:
+# → Code issue, fix locally first
+```
+
+### **Step 3: Container-Specific Testing**
+```bash
+# Build and test the exact production container
+docker build -f infra/Dockerfile.backend -t test-backend .
+docker run -p 8000:8000 test-backend
+
+# This reveals container-specific issues
+```
+
+### **Step 4: Deployment Verification**
+```bash
+# After fixing, verify the fix worked
+fly deploy --config infra/fly.toml
+
+# Monitor deployment in real-time
+fly logs -a <app-name>
+
+# Test health endpoint
+curl -f https://<app-name>.fly.dev/health
+```
+
+## 🛠️ Emergency Recovery Commands
+
+### **When Deployment is Completely Broken**
+```bash
+# 1. Stop all machines
+fly machine stop --all -a <app-name>
+
+# 2. Destroy problematic machines
+fly machine list -a <app-name>
+fly machine destroy <machine-id> -a <app-name>
+
+# 3. Fresh deployment
+fly deploy --config infra/fly.toml
+
+# 4. Monitor from scratch
+fly logs -a <app-name>
+```
+
+### **When Local Development Breaks**
+```bash
+# 1. Reset Python environment
+cd backend
+rm -rf .venv
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -e .
+
+# 2. Reset database
+alembic downgrade base
+alembic upgrade head
+
+# 3. Clear caches
+find . -name "__pycache__" -type d -exec rm -rf {} +
+```
+
+## 📋 Pre-Deployment Checklist
+
+### **Code Quality Checks**
+```bash
+# 1. Test all schemas can import
+cd backend
+python -c "
+from app.modules.auth.schemas import *
+from app.modules.inventory.schemas import *
+print('✅ All schemas import successfully')
+"
+
+# 2. Test application startup
+python -m uvicorn app.api:app --host 0.0.0.0 --port 8000 &
+sleep 5
+curl -f http://localhost:8000/health && echo "✅ Health check passed"
+pkill -f uvicorn
+
+# 3. Check for deprecated patterns
+grep -r "regex=" backend/app/ --include="*.py" && echo "❌ Found deprecated regex usage"
+```
+
+### **Dependency Verification**
+```bash
+# 1. Check all dependencies are pinned
+cd backend
+python -c "
+import tomli
+with open('pyproject.toml', 'rb') as f:
+    data = tomli.load(f)
+deps = data['project']['dependencies']
+unpinned = [d for d in deps if '>=' not in d and '==' not in d and '~=' not in d]
+if unpinned:
+    print(f'❌ Unpinned dependencies: {unpinned}')
+else:
+    print('✅ All dependencies are pinned')
+"
+```
+
+### **Container Build Test**
+```bash
+# Test the exact production build process
+docker build -f infra/Dockerfile.backend -t test-build .
+docker run --rm test-build python -c "
+from app.api import app
+print('✅ Application imports successfully in container')
+"
+```
+
+## 🔄 Automated Health Monitoring
+
+### **Continuous Health Check Script**
+```bash
+#!/bin/bash
+# health-monitor.sh
+
+APP_NAME="uehub"
+HEALTH_URL="https://${APP_NAME}.fly.dev/health"
+
+while true; do
+    if curl -f -s "$HEALTH_URL" > /dev/null; then
+        echo "$(date): ✅ App healthy"
+    else
+        echo "$(date): ❌ App unhealthy - checking logs"
+        fly logs -a "$APP_NAME" | tail -10
+        
+        # Auto-restart if needed
+        echo "Attempting restart..."
+        fly machine restart -a "$APP_NAME"
+    fi
+    sleep 60
+done
+```
+
+## 🎯 Root Cause Analysis Template
+
+When an issue occurs, document it using this template:
+
+```markdown
+## Issue: [Brief Description]
+
+**Date**: [YYYY-MM-DD]
+**Severity**: [Critical/High/Medium/Low]
+
+### Symptoms
+- [ ] What the user/system experienced
+- [ ] Error messages observed
+- [ ] Services affected
+
+### Root Cause
+- [ ] What actually caused the issue
+- [ ] Why existing safeguards didn't catch it
+
+### Resolution
+- [ ] Immediate fix applied
+- [ ] Code changes made
+- [ ] Configuration changes
+
+### Prevention
+- [ ] Tests added to catch this in future
+- [ ] Monitoring/alerts added
+- [ ] Documentation updated
+
+### Timeline
+- **Detection**: [Time]
+- **Investigation**: [Duration]
+- **Resolution**: [Time]
+- **Total Downtime**: [Duration]
+```
+
+This approach focuses on the **actual problems** we encountered rather than theoretical issues, making it much more practical for real-world debugging.
 description:
 globs:
 alwaysApply: true

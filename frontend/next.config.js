@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '/backend',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '/api',
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'UE Hub',
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
   },
@@ -11,7 +11,7 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/backend/:path*',
+        source: '/api/:path*',
         destination: 'https://uehub.fly.dev/:path*',
       },
     ]

@@ -10,7 +10,7 @@ primary_region = "ord"
   ENVIRONMENT = "production"
   LOG_LEVEL = "INFO"
   API_PREFIX = "/v1"
-  ENABLE_DOCS = "false"
+  ENABLE_DOCS = "true"
 
 [http_service]
   internal_port = 8080
@@ -50,7 +50,7 @@ primary_region = "ord"
   memory_mb = 512
 
 [deploy]
-  # release_command = "alembic upgrade head"
+  release_command = "alembic upgrade head"
 
 [[statics]]
   guest_path = "/app/uploads"

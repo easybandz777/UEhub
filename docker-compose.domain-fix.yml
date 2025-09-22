@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy with domain support
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.minimal
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=/api
+    restart: unless-stopped
+
+  # FastAPI Backend  
+  backend:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - SECRET_KEY=uehub-super-secret-production-key-minimum-32-characters-long
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped

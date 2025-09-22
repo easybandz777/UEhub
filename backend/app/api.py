@@ -15,6 +15,7 @@ from .core.sentry import init_sentry
 from .modules.auth.router import router as auth_router
 from .modules.inventory.router import router as inventory_router
 from .modules.safety.router import router as safety_router
+from .modules.timeclock.router import router as timeclock_router
 from .test_router import test_router
 
 # Import other module routers as they're created
@@ -375,6 +376,7 @@ app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=[
 # Temporarily disabled - using raw SQL endpoints instead
 # app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
 app.include_router(safety_router, prefix=f"{settings.app.api_prefix}/safety", tags=["safety"])
+app.include_router(timeclock_router, prefix=f"{settings.app.api_prefix}/timeclock", tags=["timeclock"])
 
 # NUCLEAR TEST ROUTER - NO DEPENDENCIES
 app.include_router(test_router, prefix="/nuclear", tags=["nuclear-test"])

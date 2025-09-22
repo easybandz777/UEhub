@@ -35,7 +35,7 @@
     "typescript": "^5.2.2",
     "tsup": "^7.2.0",
     "eslint": "^8.53.0",
-    "@ue-hub/eslint-config": "workspace:*"
+    "@ue-hub/eslint-config": "file:../eslint-config"
   },
   "peerDependencies": {
     "react": "^18.0.0",

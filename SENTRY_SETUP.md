@@ -4,7 +4,8 @@ This guide will help you set up Sentry error tracking for both the frontend (Nex
 
 ## 📋 Prerequisites
 
-1. Create a free Sentry account at [sentry.io](https://sentry.io)
+1. Create a free Sentry account at [sentry.io](image.pngdis properly ??
+https://sentry.io)
 2. Create a new organization (or use existing)
 3. Create two projects: one for frontend, one for backend
 

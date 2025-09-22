@@ -14,7 +14,8 @@ import {
   Menu, 
   X,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Clock
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -56,6 +57,12 @@ export default function Navigation() {
       name: 'Inventory',
       href: '/inventory',
       icon: Package,
+      show: true
+    },
+    {
+      name: 'Timeclock',
+      href: '/timeclock',
+      icon: Clock,
       show: true
     },
     {

@@ -17,7 +17,7 @@
     "clean": "rm -rf dist src/generated"
   },
   "dependencies": {
-    "@ue-hub/types": "workspace:*"
+    "@ue-hub/types": "file:../types"
   },
   "devDependencies": {
     "typescript": "^5.2.2",
