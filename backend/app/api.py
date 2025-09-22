@@ -838,12 +838,12 @@ async def feature_flag_middleware(request, call_next):
         # Check if route is protected by feature flags
         path = request.url.path
         
-    # Example feature flag checks
-    if path.startswith("/v1/reports") and not True:  # Replace with actual flag check
-        return JSONResponse(status_code=404, content={"detail": "Reporting feature is disabled"})
+        # Example feature flag checks
+        if path.startswith("/v1/reports") and not True:  # Replace with actual flag check
+            return JSONResponse(content={"detail": "Reporting feature is disabled", "status_code": 404}, status_code=404)
         
-    if path.startswith("/v1/webhooks") and not True:  # Replace with actual flag check
-        return JSONResponse(status_code=404, content={"detail": "Webhooks feature is disabled"})
+        if path.startswith("/v1/webhooks") and not True:  # Replace with actual flag check
+            return JSONResponse(content={"detail": "Webhooks feature is disabled", "status_code": 404}, status_code=404)
     
     except Exception as e:
         logging.error(f"Feature flag middleware error: {e}")
