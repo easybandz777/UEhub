@@ -1,15 +1,19 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
+  "buildCommand": "cd frontend && pnpm install --no-frozen-lockfile && pnpm run build",
+  "outputDirectory": "frontend/.next",
+  "framework": "nextjs",
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "devCommand": "cd frontend && pnpm dev",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://uehub.fly.dev",
+    "NEXT_PUBLIC_APP_NAME": "UE Hub",
+    "NEXT_PUBLIC_APP_VERSION": "1.0.0"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_API_URL": "https://uehub.fly.dev",
+      "NEXT_PUBLIC_APP_NAME": "UE Hub",
+      "NEXT_PUBLIC_APP_VERSION": "1.0.0"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
-  ]
+  }
 }
