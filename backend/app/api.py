@@ -220,7 +220,7 @@ async def temporary_dashboard():
             
             async for db in get_db():
                 # Admin users can see all inventory, others see only their own
-                if current_user.get("role") == "admin":
+                if current_user.role == "admin":
                     # Admin sees all inventory with user information
                     result = await db.execute(
                         text("""
@@ -240,7 +240,7 @@ async def temporary_dashboard():
                             WHERE user_id = :user_id 
                             ORDER BY created_at DESC
                         """),
-                        {"user_id": current_user.get("id")}
+                        {"user_id": current_user.id}
                     )
                 rows = result.fetchall()
                 
@@ -258,7 +258,7 @@ async def temporary_dashboard():
                         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
                         "user_id": row.user_id
                     }
-                    if current_user.get("role") == "admin":
+                    if current_user.role == "admin":
                         item_data["user_name"] = row.user_name
                         item_data["user_email"] = row.user_email
                     items.append(item_data)
@@ -292,7 +292,7 @@ async def temporary_inventory_create(item_data: dict, current_user: dict = Depen
         from sqlalchemy import text
         import uuid
         
-        user_id = current_user.get("id")
+        user_id = current_user.id
         
         async for db in get_db():
             # Generate UUID for new item
