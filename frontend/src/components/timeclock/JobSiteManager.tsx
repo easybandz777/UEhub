@@ -126,12 +126,14 @@ export function JobSiteManager() {
         </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Create Job Site
-            </Button>
-          </DialogTrigger>
+          <Button asChild className="flex items-center gap-2">
+            <DialogTrigger>
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Create Job Site
+              </span>
+            </DialogTrigger>
+          </Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Job Site</DialogTitle>
