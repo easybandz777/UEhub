@@ -208,10 +208,26 @@ export function useRole() {
   return {
     role: user?.role || null,
     isSuperAdmin: user?.role === 'superadmin',
-    isAdmin: user?.role === 'admin',
-    isEmployee: user?.role === 'employee',
-    canManageUsers: user?.role === 'superadmin',
-    canApproveChecklists: user?.role === 'admin' || user?.role === 'superadmin',
-    canViewAllChecklists: user?.role === 'admin' || user?.role === 'superadmin'
+    isAdmin: user?.role === 'admin' || user?.role === 'superadmin',
+    isManager: user?.role === 'manager',
+    isEmployee: user?.role === 'employee' || user?.role === 'worker',
+    
+    // User Management Permissions
+    canManageUsers: user?.role === 'admin' || user?.role === 'superadmin',
+    canCreateUsers: user?.role === 'admin' || user?.role === 'superadmin',
+    canDeleteUsers: user?.role === 'superadmin',
+    
+    // Inventory Permissions  
+    canViewAllInventory: user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager',
+    canViewUserInventory: user?.role === 'admin' || user?.role === 'superadmin',
+    canManageOwnInventory: true, // All users can manage their own inventory
+    
+    // Safety Permissions
+    canApproveChecklists: user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager',
+    canViewAllChecklists: user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager',
+    
+    // General Permissions
+    canViewReports: user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager',
+    canManageSettings: user?.role === 'admin' || user?.role === 'superadmin'
   }
 }

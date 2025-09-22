@@ -345,6 +345,58 @@ export class ApiClient {
     return AuthStorage.getUser()
   }
 
+  // User Management methods (Admin only)
+  async getAllUsers(): Promise<{ users: User[]; total: number }> {
+    return this.xhrRequest<{ users: User[]; total: number }>('/admin/users')
+  }
+
+  async createUser(userData: {
+    email: string;
+    name: string;
+    password?: string;
+    role: string;
+    department?: string;
+    phone?: string;
+    notes?: string;
+  }): Promise<User> {
+    return this.xhrRequest<User>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    })
+  }
+
+  async updateUser(userId: string, userData: Partial<{
+    name: string;
+    email: string;
+    role: string;
+    department: string;
+    phone: string;
+    notes: string;
+    password: string;
+    is_active: boolean;
+  }>): Promise<{ message: string }> {
+    return this.xhrRequest<{ message: string }>(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData)
+    })
+  }
+
+  async deleteUser(userId: string): Promise<{ message: string }> {
+    return this.xhrRequest<{ message: string }>(`/admin/users/${userId}`, {
+      method: 'DELETE'
+    })
+  }
+
+  async getUserInventory(userId: string): Promise<{
+    user: { id: string; name: string; email: string };
+    inventory: { items: InventoryItem[]; total: number };
+  }> {
+    return this.xhrRequest<{
+      user: { id: string; name: string; email: string };
+      inventory: { items: InventoryItem[]; total: number };
+    }>(`/admin/users/${userId}/inventory`)
+  }
+
   // Inventory methods (existing)
   async createInventoryItem(item: InventoryItemCreate): Promise<InventoryItem> {
     return this.xhrRequest<InventoryItem>('/inventory/', {

@@ -22,7 +22,14 @@ export default function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isAuthenticated, logout } = useAuth()
-  const { canManageUsers, canApproveChecklists } = useRole()
+  const { 
+    canManageUsers, 
+    canApproveChecklists, 
+    canViewAllInventory,
+    canViewUserInventory,
+    isAdmin,
+    role 
+  } = useRole()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Don't show navigation on login page
@@ -54,7 +61,7 @@ export default function Navigation() {
       show: true
     },
     {
-      name: 'Inventory',
+      name: canViewAllInventory ? 'All Inventory' : 'My Inventory',
       href: '/inventory',
       icon: Package,
       show: true
