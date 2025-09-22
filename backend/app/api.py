@@ -373,8 +373,7 @@ async def direct_inventory_test():
 # Include routers
 app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
-# Temporarily disabled - using raw SQL endpoints instead
-# app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
+app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
 app.include_router(safety_router, prefix=f"{settings.app.api_prefix}/safety", tags=["safety"])
 app.include_router(timeclock_router, prefix=f"{settings.app.api_prefix}/timeclock", tags=["timeclock"])
 
