@@ -5,10 +5,13 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'superadmin' | 'admin' | 'employee'
+  role: 'superadmin' | 'admin' | 'manager' | 'employee' | 'worker'
   is_active: boolean
   created_at: string
   updated_at: string
+  department?: string
+  phone?: string
+  notes?: string
 }
 
 export interface LoginRequest {
