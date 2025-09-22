@@ -47,3 +47,5 @@ primary_region = "ord"
 [[statics]]
   guest_path = "/app/uploads"
   url_prefix = "/files"
+
+# ci: no-op change to trigger deploy via GitHub Actions
