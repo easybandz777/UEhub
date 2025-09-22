@@ -1,7 +1,6 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "rootDirectory": "frontend",
   "env": {
     "NEXT_PUBLIC_API_URL": "https://uehub.fly.dev",
     "NEXT_PUBLIC_APP_NAME": "UE Hub",
