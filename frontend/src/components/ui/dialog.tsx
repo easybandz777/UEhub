@@ -6,6 +6,10 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+type DialogOverlayProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay> & {
+  className?: string
+}
+
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
   children?: React.ReactNode
   className?: string
@@ -21,7 +25,7 @@ const DialogClose = DialogPrimitive.Close
 
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+  DialogOverlayProps
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
