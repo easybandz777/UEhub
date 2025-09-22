@@ -6,6 +6,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
@@ -800,21 +801,27 @@ async def info():
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
     """Custom 404 handler."""
-    return {
-        "detail": "The requested resource was not found",
-        "status_code": 404,
-        "path": str(request.url.path),
-    }
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": "The requested resource was not found",
+            "status_code": 404,
+            "path": str(request.url.path),
+        },
+    )
 
 
 @app.exception_handler(500)
 async def internal_error_handler(request, exc):
     """Custom 500 handler."""
     logging.error(f"Internal server error: {exc}")
-    return {
-        "detail": "An internal server error occurred",
-        "status_code": 500,
-    }
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "An internal server error occurred",
+            "status_code": 500,
+        },
+    )
 
 
 # Feature flag middleware
@@ -831,12 +838,12 @@ async def feature_flag_middleware(request, call_next):
         # Check if route is protected by feature flags
         path = request.url.path
         
-        # Example feature flag checks
-        if path.startswith("/v1/reports") and not True:  # Replace with actual flag check
-            return {"detail": "Reporting feature is disabled", "status_code": 404}
+    # Example feature flag checks
+    if path.startswith("/v1/reports") and not True:  # Replace with actual flag check
+        return JSONResponse(status_code=404, content={"detail": "Reporting feature is disabled"})
         
-        if path.startswith("/v1/webhooks") and not True:  # Replace with actual flag check
-            return {"detail": "Webhooks feature is disabled", "status_code": 404}
+    if path.startswith("/v1/webhooks") and not True:  # Replace with actual flag check
+        return JSONResponse(status_code=404, content={"detail": "Webhooks feature is disabled"})
     
     except Exception as e:
         logging.error(f"Feature flag middleware error: {e}")
