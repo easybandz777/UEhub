@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: uehub-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_EoVzn0WyqX1v@ep-odd-tree-adxsa81s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - API_PREFIX=/v1
+      - ENABLE_DOCS=true
+      - SECRET_KEY=RZdB5TRTPTGavzgPwT3pm4Q7ho-GtwMgZlEE9ydhvHw
+      - NEXT_PUBLIC_STACK_PROJECT_ID=479dce56-2f32-47db-9d59-06ea9cc13e91
+      - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=pck_3p4pvs6k8mc3j7efyg6x28v5csv3knc1sreme2cd93b58
+      - STACK_SECRET_SERVER_KEY=ssk_m7fad91vv13axqqnmepga0zvgq5m7r3q1pqk8bjx2bw20
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: uehub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
