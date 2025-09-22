@@ -45,10 +45,10 @@ function InventoryPage() {
 
   // Load data from API
   useEffect(() => {
-    // Clear any cached data immediately
+    // Clear inventory-specific cache only. Do NOT clear all localStorage
+    // to preserve auth tokens required for API requests.
     localStorage.removeItem('inventory-items')
     localStorage.removeItem('inventory-stats')
-    localStorage.clear()
     
     loadInventoryData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
