@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '../../components/ui/button'
+import { useAuth, useRole, withAuth } from '@/components/auth/AuthProvider'
 import { 
   Package, 
   Plus, 
@@ -11,11 +12,15 @@ import {
   Trash2,
   BarChart3,
   Download,
-  Upload
+  Upload,
+  Users,
+  Filter
 } from 'lucide-react'
 import { apiClient, InventoryItem, InventoryStats } from '../../lib/api'
 
-export default function InventoryPage() {
+function InventoryPage() {
+  const { user } = useAuth()
+  const { canViewAllInventory, canViewUserInventory, role } = useRole()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [stats, setStats] = useState<InventoryStats | null>({
     total_items: 0,
@@ -28,6 +33,7 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
+  const [viewMode, setViewMode] = useState<'my' | 'all'>('my') // Toggle between my inventory and all inventory
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -181,9 +187,42 @@ export default function InventoryPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Package className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Tool Inventory</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {canViewAllInventory && viewMode === 'all' ? 'All Inventory' : 'My Inventory'}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {user?.name} ({role}) - {canViewAllInventory && viewMode === 'all' ? 'Company-wide view' : 'Personal inventory'}
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* View Mode Toggle for Admins */}
+              {canViewAllInventory && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setViewMode('my')}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      viewMode === 'my' 
+                        ? 'bg-blue-100 text-blue-700 font-medium' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    My Items
+                  </button>
+                  <button
+                    onClick={() => setViewMode('all')}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      viewMode === 'all' 
+                        ? 'bg-blue-100 text-blue-700 font-medium' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Users className="h-4 w-4 mr-1 inline" />
+                    All Users
+                  </button>
+                </div>
+              )}
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -491,3 +530,5 @@ export default function InventoryPage() {
     </div>
   )
 }
+
+export default withAuth(InventoryPage)
