@@ -134,6 +134,22 @@ async def get_current_user(
     )
 
 
+def get_current_user_sync(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> CurrentUser:
+    """Get the current authenticated user (sync version for sync endpoints)."""
+    token_data = verify_token(credentials.credentials)
+    
+    # For sync endpoints, we'll construct it from the token data
+    # This is consistent with the async version above
+    return CurrentUser(
+        id=token_data.user_id,
+        email=token_data.email,
+        name=token_data.email.split("@")[0],  # Simple name extraction
+        role=token_data.role
+    )
+
+
 def require_role(required_role: str):
     """Decorator to require a specific role."""
     def role_checker(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
