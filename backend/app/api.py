@@ -212,7 +212,7 @@ async def temporary_dashboard():
     # TEMPORARY INVENTORY ENDPOINTS - Bypass SQLAlchemy ORM issues with raw SQL
     @app.get("/v1/inventory")
     @app.get("/v1/inventory/")
-    async def temporary_inventory_list(current_user: dict = Depends(get_current_user)):
+    async def temporary_inventory_list(current_user = Depends(get_current_user)):
         """Temporary inventory list endpoint using raw SQL with user filtering."""
         try:
             from .core.db import get_db
@@ -285,7 +285,7 @@ async def temporary_dashboard():
 
 @app.post("/v1/inventory")
 @app.post("/v1/inventory/")
-async def temporary_inventory_create(item_data: dict, current_user: dict = Depends(get_current_user)):
+async def temporary_inventory_create(item_data: dict, current_user = Depends(get_current_user)):
     """Temporary inventory creation endpoint using raw SQL."""
     try:
         from .core.db import get_db
@@ -753,7 +753,7 @@ async def direct_inventory_test():
 # Include routers
 app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
-app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])
+# app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])  # Disabled - using temporary endpoints
 app.include_router(safety_router, prefix=f"{settings.app.api_prefix}/safety", tags=["safety"])
 app.include_router(timeclock_router, prefix=f"{settings.app.api_prefix}/timeclock", tags=["timeclock"])
 
