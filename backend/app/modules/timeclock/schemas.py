@@ -77,7 +77,7 @@ class ClockOutRequest(BaseModel):
 class BreakRequest(BaseModel):
     """Schema for break start/end."""
     time_entry_id: str
-    action: str = Field(..., regex="^(start|end)$")
+    action: str = Field(..., pattern="^(start|end)$")
 
 
 class TimeEntry(TimeEntryBase):

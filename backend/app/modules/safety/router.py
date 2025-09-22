@@ -303,7 +303,7 @@ async def get_default_osha_template(
 @router.get("/checklists/{checklist_id}/report")
 async def generate_checklist_report(
     checklist_id: str,
-    format: str = Query("pdf", regex="^(pdf|excel|json)$"),
+    format: str = Query("pdf", pattern="^(pdf|excel|json)$"),
     current_user: CurrentUser = Depends(require_authenticated),
     safety_service: SafetyService = Depends(get_safety_service)
 ):
