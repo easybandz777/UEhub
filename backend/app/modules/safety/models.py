@@ -96,12 +96,12 @@ class SafetyTemplate(Base):
     template_data = Column(JSON, nullable=False)
     
     # Metadata
-    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_by_id = Column(String, ForeignKey("auth_user.id"), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
-    created_by = relationship("User", back_populates="created_templates")
+    created_by = relationship("User")
 
 
 # Add relationships to User model (this would be added to the User model in auth module)
