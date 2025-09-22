@@ -34,7 +34,7 @@ export default function TimeclockPage() {
 
   const loadActiveTimeEntry = async () => {
     try {
-      const response = await apiClient.get('/timeclock/time-entries/active')
+      const response = await apiClient.get<ActiveTimeEntry | null>('/timeclock/time-entries/active')
       setActiveTimeEntry(response.data)
     } catch (error) {
       console.error('Failed to load active time entry:', error)

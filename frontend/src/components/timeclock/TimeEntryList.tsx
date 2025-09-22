@@ -50,7 +50,7 @@ export function TimeEntryList({ userId }: TimeEntryListProps) {
       }
       params.append('limit', '50')
       
-      const response = await apiClient.get(`/timeclock/time-entries?${params}`)
+      const response = await apiClient.get<TimeEntry[]>(`/timeclock/time-entries?${params}`)
       setTimeEntries(response.data)
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to load time entries')

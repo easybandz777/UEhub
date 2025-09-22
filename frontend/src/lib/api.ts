@@ -170,6 +170,59 @@ export class ApiClient {
     this.baseUrl = DIRECT_API_URL
   }
 
+  // Lightweight axios-like helpers returning { data }
+  async get<T>(
+    endpoint: string,
+    options: { headers?: Record<string, string>; requireAuth?: boolean } = {}
+  ): Promise<{ data: T }> {
+    const data = await this.xhrRequest<T>(endpoint, {
+      method: 'GET',
+      headers: options.headers,
+      requireAuth: options.requireAuth,
+    })
+    return { data }
+  }
+
+  async post<T>(
+    endpoint: string,
+    body?: unknown,
+    options: { headers?: Record<string, string>; requireAuth?: boolean } = {}
+  ): Promise<{ data: T }> {
+    const data = await this.xhrRequest<T>(endpoint, {
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: options.headers,
+      requireAuth: options.requireAuth,
+    })
+    return { data }
+  }
+
+  async put<T>(
+    endpoint: string,
+    body?: unknown,
+    options: { headers?: Record<string, string>; requireAuth?: boolean } = {}
+  ): Promise<{ data: T }> {
+    const data = await this.xhrRequest<T>(endpoint, {
+      method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: options.headers,
+      requireAuth: options.requireAuth,
+    })
+    return { data }
+  }
+
+  async delete<T>(
+    endpoint: string,
+    options: { headers?: Record<string, string>; requireAuth?: boolean } = {}
+  ): Promise<{ data: T }> {
+    const data = await this.xhrRequest<T>(endpoint, {
+      method: 'DELETE',
+      headers: options.headers,
+      requireAuth: options.requireAuth,
+    })
+    return { data }
+  }
+
   private async xhrRequest<T>(
     endpoint: string,
     options: {

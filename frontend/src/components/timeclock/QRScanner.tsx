@@ -101,11 +101,14 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
     setError(null)
 
     try {
-      const response = await apiClient.post('/timeclock/scan', {
+      const response = await apiClient.post<{ job_site: any; can_clock_in: boolean; can_clock_out: boolean; active_time_entry_id?: string; message: string }>(
+        '/timeclock/scan',
+        {
         qr_code_data: qrCodeData
-      })
-      
-      setScanResult(response.data)
+        }
+      )
+
+      setScanResult(response.data as any)
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to process QR code')
     } finally {
@@ -130,7 +133,7 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
         requestData.location_lng = location.lng
       }
 
-      const response = await apiClient.post('/timeclock/clock-in', requestData)
+      const response = await apiClient.post<{ message: string }>('/timeclock/clock-in', requestData)
       
       // Show success message
       setError(null)
@@ -163,7 +166,7 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
         requestData.location_lng = location.lng
       }
 
-      const response = await apiClient.post('/timeclock/clock-out', requestData)
+      const response = await apiClient.post<{ message: string }>('/timeclock/clock-out', requestData)
       
       // Show success message
       setError(null)
@@ -186,7 +189,7 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
     setError(null)
 
     try {
-      const response = await apiClient.post('/timeclock/break', {
+      const response = await apiClient.post<{ message: string }>('/timeclock/break', {
         time_entry_id: activeTimeEntry.id,
         action: 'start'
       })
@@ -207,7 +210,7 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
     setError(null)
 
     try {
-      const response = await apiClient.post('/timeclock/break', {
+      const response = await apiClient.post<{ message: string }>('/timeclock/break', {
         time_entry_id: activeTimeEntry.id,
         action: 'end'
       })
