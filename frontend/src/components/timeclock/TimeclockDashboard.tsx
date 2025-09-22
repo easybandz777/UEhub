@@ -30,7 +30,7 @@ export function TimeclockDashboard() {
 
   const loadStats = async () => {
     try {
-      const response = await apiClient.get('/timeclock/stats')
+      const response = await apiClient.get<TimeclockStats>('/timeclock/stats')
       setStats(response.data)
       setError(null)
     } catch (error: any) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Html5QrcodeScanner, Html5QrcodeScannerConfig } from 'html5-qrcode'
+import { Html5QrcodeScanner } from 'html5-qrcode'
 import { apiClient } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -62,23 +62,23 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
       stopScanner()
     }
 
-    const config: Html5QrcodeScannerConfig = {
+    const config: any = {
       fps: 10,
       qrbox: { width: 250, height: 250 },
       aspectRatio: 1.0,
       disableFlip: false,
-      supportedScanTypes: [0], // QR Code only
+      supportedScanTypes: [0],
     }
 
-    scannerRef.current = new Html5QrcodeScanner(elementId, config, false)
+    scannerRef.current = new Html5QrcodeScanner(elementId, config, false as any)
     
     scannerRef.current.render(
-      (decodedText) => {
+      (decodedText: string) => {
         handleScanSuccess(decodedText)
       },
-      (error) => {
+      (_error: unknown) => {
         // Ignore scan errors, they're too frequent
-        console.debug('QR scan error:', error)
+        // console.debug('QR scan error:', _error)
       }
     )
 
@@ -104,7 +104,7 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
       const response = await apiClient.post<{ job_site: any; can_clock_in: boolean; can_clock_out: boolean; active_time_entry_id?: string; message: string }>(
         '/timeclock/scan',
         {
-        qr_code_data: qrCodeData
+          qr_code_data: qrCodeData
         }
       )
 
@@ -124,7 +124,7 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
 
     try {
       const requestData: any = {
-        qr_code_data: scanResult.job_site.id, // This should be the actual QR code data
+        qr_code_data: scanResult.job_site.id,
         notes: ''
       }
 
@@ -135,12 +135,9 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
 
       const response = await apiClient.post<{ message: string }>('/timeclock/clock-in', requestData)
       
-      // Show success message
       setError(null)
       setScanResult(null)
       onClockAction()
-      
-      // Show success alert
       alert(`✅ ${response.data.message}`)
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to clock in')
@@ -168,12 +165,9 @@ export function QRScanner({ activeTimeEntry, onClockAction }: QRScannerProps) {
 
       const response = await apiClient.post<{ message: string }>('/timeclock/clock-out', requestData)
       
-      // Show success message
       setError(null)
       setScanResult(null)
       onClockAction()
-      
-      // Show success alert
       alert(`✅ ${response.data.message}`)
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to clock out')
