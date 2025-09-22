@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth, useRole } from '@/components/auth/AuthProvider'
 import { 
@@ -95,9 +96,11 @@ export default function Navigation() {
           {/* Logo and brand */}
           <div className="flex items-center">
             <Link href="/dashboard" className="flex items-center space-x-3">
-              <img 
+              <Image 
                 src="/ue2-logo.svg" 
                 alt="UE² - Upper Echelon Electrical Services" 
+                width={120}
+                height={40}
                 className="h-10 w-auto"
               />
               <span className="text-xl font-bold text-gray-900">UE Hub</span>
