@@ -24,7 +24,7 @@ class SafetyChecklist(Base):
     # Project Information
     project_name = Column(String(200), nullable=False)
     location = Column(String(200), nullable=False)
-    inspector_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    inspector_id = Column(String, ForeignKey("auth_user.id"), nullable=False)
     inspection_date = Column(DateTime, nullable=False)
     scaffold_type = Column(String(100), nullable=False)
     height = Column(String(50), nullable=False)
@@ -40,7 +40,7 @@ class SafetyChecklist(Base):
     critical_failures = Column(Integer, nullable=False, default=0)
     
     # Approval workflow
-    approved_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    approved_by_id = Column(String, ForeignKey("auth_user.id"), nullable=True)
     approved_at = Column(DateTime, nullable=True)
     
     # Timestamps
@@ -48,8 +48,8 @@ class SafetyChecklist(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
-    inspector = relationship("User", foreign_keys=[inspector_id], back_populates="inspected_checklists")
-    approved_by = relationship("User", foreign_keys=[approved_by_id], back_populates="approved_checklists")
+    inspector = relationship("User", foreign_keys=[inspector_id])
+    approved_by = relationship("User", foreign_keys=[approved_by_id])
     checklist_items = relationship("SafetyChecklistItem", back_populates="checklist", cascade="all, delete-orphan")
 
 
