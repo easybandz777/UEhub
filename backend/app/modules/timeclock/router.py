@@ -205,7 +205,7 @@ async def get_time_entries(
 
 
 @router.get("/time-entries/active", response_model=Optional[TimeEntry])
-async def get_active_time_entry(
+def get_active_time_entry(
     current_user: CurrentUser = Depends(get_current_user_sync),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
