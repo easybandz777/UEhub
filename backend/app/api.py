@@ -17,7 +17,7 @@ from .core.security import get_current_user
 from .modules.auth.router import router as auth_router
 from .modules.inventory.router import router as inventory_router
 from .modules.safety.router import router as safety_router
-from .modules.timeclock.router import router as timeclock_router
+# from .modules.timeclock.router import router as timeclock_router  # DISABLED - using temporary endpoints
 from .test_router import test_router
 
 # Import other module routers as they're created
@@ -209,6 +209,158 @@ async def temporary_dashboard():
         "critical_failures": [],
         "completion_trend": []
     }
+
+# TEMPORARY TIMECLOCK ENDPOINTS - Bypass async/sync conflicts with raw SQL
+@app.get("/v1/timeclock/job-sites")
+@app.get("/v1/timeclock/job-sites/")
+async def temporary_timeclock_job_sites(current_user = Depends(get_current_user)):
+    """Temporary job sites endpoint using raw SQL."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        async for db in get_db():
+            result = await db.execute(
+                text("""
+                    SELECT id, name, description, address, latitude, longitude, 
+                           radius_meters, qr_code_data, is_active, created_at
+                    FROM timeclock_job_site 
+                    WHERE is_active = true 
+                    ORDER BY created_at DESC
+                """)
+            )
+            rows = result.fetchall()
+            
+            job_sites = []
+            for row in rows:
+                job_sites.append({
+                    "id": str(row.id),
+                    "name": row.name,
+                    "description": row.description,
+                    "address": row.address,
+                    "latitude": float(row.latitude) if row.latitude else None,
+                    "longitude": float(row.longitude) if row.longitude else None,
+                    "radius_meters": row.radius_meters,
+                    "qr_code_data": row.qr_code_data,
+                    "is_active": row.is_active,
+                    "created_at": row.created_at.isoformat() if row.created_at else None
+                })
+            
+            return JSONResponse(content={"job_sites": job_sites})
+                
+    except Exception as e:
+        import traceback
+        return JSONResponse(content={
+            "job_sites": [],
+            "error": f"Failed to load job sites: {str(e)}",
+            "traceback": traceback.format_exc()
+        }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@app.post("/v1/timeclock/job-sites")
+@app.post("/v1/timeclock/job-sites/")
+async def temporary_timeclock_create_job_site(job_site_data: dict, current_user = Depends(get_current_user)):
+    """Temporary job site creation endpoint using raw SQL."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        import uuid
+        
+        # Only admins can create job sites
+        if current_user.role not in ["admin", "superadmin"]:
+            return JSONResponse(content={
+                "error": "Only administrators can create job sites"
+            }, status_code=status.HTTP_403_FORBIDDEN)
+        
+        async for db in get_db():
+            job_site_id = str(uuid.uuid4())
+            qr_code_data = f"UEHUB-{job_site_id}-{uuid.uuid4().hex[:8]}"
+            
+            await db.execute(
+                text("""
+                    INSERT INTO timeclock_job_site (id, name, description, address, latitude, longitude, 
+                                                  radius_meters, qr_code_data, is_active, created_by_id, created_at, updated_at)
+                    VALUES (:id, :name, :description, :address, :latitude, :longitude, 
+                           :radius_meters, :qr_code_data, true, :created_by_id, NOW(), NOW())
+                """),
+                {
+                    "id": job_site_id,
+                    "name": job_site_data.get("name", ""),
+                    "description": job_site_data.get("description", ""),
+                    "address": job_site_data.get("address", ""),
+                    "latitude": job_site_data.get("latitude"),
+                    "longitude": job_site_data.get("longitude"),
+                    "radius_meters": job_site_data.get("radius_meters", 100),
+                    "qr_code_data": qr_code_data,
+                    "created_by_id": current_user.id
+                }
+            )
+            
+            await db.commit()
+            
+            return JSONResponse(content={
+                "id": job_site_id,
+                "name": job_site_data.get("name", ""),
+                "description": job_site_data.get("description", ""),
+                "address": job_site_data.get("address", ""),
+                "latitude": job_site_data.get("latitude"),
+                "longitude": job_site_data.get("longitude"),
+                "radius_meters": job_site_data.get("radius_meters", 100),
+                "qr_code_data": qr_code_data,
+                "is_active": True,
+                "created_at": None
+            }, status_code=status.HTTP_201_CREATED)
+                
+    except Exception as e:
+        import traceback
+        return JSONResponse(content={
+            "error": f"Failed to create job site: {str(e)}",
+            "traceback": traceback.format_exc()
+        }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@app.get("/v1/timeclock/time-entries/active")
+@app.get("/v1/timeclock/time-entries/active/")
+async def temporary_timeclock_active_entry(current_user = Depends(get_current_user)):
+    """Temporary active time entry endpoint using raw SQL."""
+    try:
+        from .core.db import get_db
+        from sqlalchemy import text
+        
+        async for db in get_db():
+            result = await db.execute(
+                text("""
+                    SELECT te.id, te.user_id, te.job_site_id, te.clock_in_time, te.notes,
+                           js.name as job_site_name
+                    FROM timeclock_time_entry te
+                    JOIN timeclock_job_site js ON te.job_site_id = js.id
+                    WHERE te.user_id = :user_id AND te.clock_out_time IS NULL
+                    ORDER BY te.clock_in_time DESC
+                    LIMIT 1
+                """),
+                {"user_id": current_user.id}
+            )
+            row = result.fetchone()
+            
+            if row:
+                return JSONResponse(content={
+                    "id": str(row.id),
+                    "user_id": row.user_id,
+                    "job_site_id": str(row.job_site_id),
+                    "job_site_name": row.job_site_name,
+                    "clock_in_time": row.clock_in_time.isoformat() if row.clock_in_time else None,
+                    "notes": row.notes
+                })
+            else:
+                return JSONResponse(content=None)
+                
+    except Exception as e:
+        import traceback
+        return JSONResponse(content={
+            "error": f"Failed to get active time entry: {str(e)}",
+            "traceback": traceback.format_exc()
+        }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # TEMPORARY INVENTORY ENDPOINTS - Bypass SQLAlchemy ORM issues with raw SQL
 @app.get("/v1/inventory")
@@ -756,7 +908,7 @@ app.include_router(health_router, tags=["health"])
 app.include_router(auth_router, prefix=f"{settings.app.api_prefix}/auth", tags=["auth"])
 # app.include_router(inventory_router, prefix=f"{settings.app.api_prefix}/inventory", tags=["inventory"])  # Disabled - using temporary endpoints
 app.include_router(safety_router, prefix=f"{settings.app.api_prefix}/safety", tags=["safety"])
-app.include_router(timeclock_router, prefix=f"{settings.app.api_prefix}/timeclock", tags=["timeclock"])
+# app.include_router(timeclock_router, prefix=f"{settings.app.api_prefix}/timeclock", tags=["timeclock"])  # DISABLED - using temporary endpoints
 
 # NUCLEAR TEST ROUTER - NO DEPENDENCIES
 app.include_router(test_router, prefix="/nuclear", tags=["nuclear-test"])
