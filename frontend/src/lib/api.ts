@@ -6,8 +6,8 @@ function resolveApiBaseUrl(): string {
     const trimmed = envUrl.replace(/\/$/, '')
     return `${trimmed}/v1`
   }
-  // Fallback to Next.js rewrite proxy
-  return '/api/v1'
+  // FIXED: Use direct API URL instead of proxy to avoid auth header issues
+  return 'https://api.echelonx.tech/v1'
 }
 
 // Types
