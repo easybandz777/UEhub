@@ -96,12 +96,12 @@ class TimeclockService:
         qr_code_data = self._generate_qr_code_data(job_site_data.name, temp_id)
         
         # Create job site
-        job_site = self.repository.create_job_site(job_site_data, created_by_id, qr_code_data)
+        job_site = await self.repository.create_job_site(job_site_data, created_by_id, qr_code_data)
         
         # Update QR code data with actual ID
         actual_qr_data = self._generate_qr_code_data(job_site_data.name, job_site.id)
         job_site.qr_code_data = actual_qr_data
-        self.repository.db.commit()
+        await self.repository.db.commit()
         
         # Generate QR code image
         qr_code_image = self._generate_qr_code_image(actual_qr_data)
@@ -118,14 +118,14 @@ class TimeclockService:
             qr_code_image=qr_code_image
         )
 
-    def get_job_site(self, job_site_id: str) -> Optional[JobSite]:
+    async def get_job_site(self, job_site_id: str) -> Optional[JobSite]:
         """Get job site by ID."""
-        job_site = self.repository.get_job_site(job_site_id)
+        job_site = await self.repository.get_job_site(job_site_id)
         return JobSite.from_orm(job_site) if job_site else None
 
-    def get_job_site_with_qr(self, job_site_id: str) -> Optional[JobSiteWithQR]:
+    async def get_job_site_with_qr(self, job_site_id: str) -> Optional[JobSiteWithQR]:
         """Get job site with QR code image."""
-        job_site = self.repository.get_job_site(job_site_id)
+        job_site = await self.repository.get_job_site(job_site_id)
         if not job_site:
             return None
         
@@ -135,14 +135,14 @@ class TimeclockService:
             qr_code_image=qr_code_image
         )
 
-    def get_job_sites(self, skip: int = 0, limit: int = 100, active_only: bool = True) -> List[JobSite]:
+    async def get_job_sites(self, skip: int = 0, limit: int = 100, active_only: bool = True) -> List[JobSite]:
         """Get all job sites."""
-        job_sites = self.repository.get_job_sites(skip, limit, active_only)
+        job_sites = await self.repository.get_job_sites(skip, limit, active_only)
         return [JobSite.from_orm(js) for js in job_sites]
 
     async def update_job_site(self, job_site_id: str, job_site_data: JobSiteUpdate, updated_by_id: str) -> Optional[JobSite]:
         """Update job site."""
-        job_site = self.repository.update_job_site(job_site_id, job_site_data)
+        job_site = await self.repository.update_job_site(job_site_id, job_site_data)
         if not job_site:
             return None
         
@@ -157,7 +157,7 @@ class TimeclockService:
 
     async def delete_job_site(self, job_site_id: str, deleted_by_id: str) -> bool:
         """Delete job site."""
-        success = self.repository.delete_job_site(job_site_id)
+        success = await self.repository.delete_job_site(job_site_id)
         if success:
             await self.event_bus.publish("timeclock.job_site.deleted", {
                 "job_site_id": job_site_id,
@@ -169,7 +169,7 @@ class TimeclockService:
     async def scan_qr_code(self, qr_code_data: str, user_id: str) -> QRCodeScanResult:
         """Process QR code scan and return available actions."""
         # Find job site by QR code
-        job_site = self.repository.get_job_site_by_qr_code(qr_code_data)
+        job_site = await self.repository.get_job_site_by_qr_code(qr_code_data)
         if not job_site:
             return QRCodeScanResult(
                 job_site=None,
@@ -179,7 +179,7 @@ class TimeclockService:
             )
         
         # Check if user has active time entry
-        active_entry = self.repository.get_active_time_entry(user_id)
+        active_entry = await self.repository.get_active_time_entry(user_id)
         
         if active_entry:
             # User is clocked in
@@ -214,12 +214,12 @@ class TimeclockService:
     async def clock_in(self, request: ClockInRequest, user_id: str, ip_address: Optional[str] = None) -> Tuple[TimeEntry, str]:
         """Clock in user at job site."""
         # Validate QR code and get job site
-        job_site = self.repository.get_job_site_by_qr_code(request.qr_code_data)
+        job_site = await self.repository.get_job_site_by_qr_code(request.qr_code_data)
         if not job_site:
             raise ValueError("Invalid QR code")
         
         # Check if user is already clocked in
-        active_entry = self.repository.get_active_time_entry(user_id)
+        active_entry = await self.repository.get_active_time_entry(user_id)
         if active_entry:
             raise ValueError("You are already clocked in. Please clock out first.")
         
@@ -235,7 +235,7 @@ class TimeclockService:
         
         # Create time entry
         clock_in_time = datetime.utcnow()
-        time_entry = self.repository.create_time_entry(
+        time_entry = await self.repository.create_time_entry(
             user_id=user_id,
             job_site_id=job_site.id,
             clock_in_time=clock_in_time,
@@ -245,7 +245,7 @@ class TimeclockService:
         )
         
         # Create audit log
-        self.repository.create_audit_log(
+        await self.repository.create_audit_log(
             time_entry_id=time_entry.id,
             action="clock_in",
             old_values={},
@@ -268,7 +268,7 @@ class TimeclockService:
     async def clock_out(self, request: ClockOutRequest, user_id: str, ip_address: Optional[str] = None) -> Tuple[TimeEntry, str]:
         """Clock out user."""
         # Get time entry
-        time_entry = self.repository.get_time_entry(request.time_entry_id)
+        time_entry = await self.repository.get_time_entry(request.time_entry_id)
         if not time_entry:
             raise ValueError("Time entry not found")
         
@@ -291,7 +291,7 @@ class TimeclockService:
         
         # Clock out
         clock_out_time = datetime.utcnow()
-        updated_entry = self.repository.clock_out(
+        updated_entry = await self.repository.clock_out(
             time_entry_id=request.time_entry_id,
             clock_out_time=clock_out_time,
             location_lat=request.location_lat,
@@ -300,7 +300,7 @@ class TimeclockService:
         )
         
         # Create audit log
-        self.repository.create_audit_log(
+        await self.repository.create_audit_log(
             time_entry_id=time_entry.id,
             action="clock_out",
             old_values={"clock_out_time": None},
@@ -323,11 +323,11 @@ class TimeclockService:
 
     async def start_break(self, request: BreakRequest, user_id: str) -> Tuple[TimeEntry, str]:
         """Start break."""
-        time_entry = self.repository.get_time_entry(request.time_entry_id)
+        time_entry = await self.repository.get_time_entry(request.time_entry_id)
         if not time_entry or time_entry.user_id != user_id:
             raise ValueError("Time entry not found or access denied")
         
-        updated_entry = self.repository.start_break(request.time_entry_id)
+        updated_entry = await self.repository.start_break(request.time_entry_id)
         if not updated_entry:
             raise ValueError("Cannot start break. You may already be on break or clocked out.")
         
@@ -341,11 +341,11 @@ class TimeclockService:
 
     async def end_break(self, request: BreakRequest, user_id: str) -> Tuple[TimeEntry, str]:
         """End break."""
-        time_entry = self.repository.get_time_entry(request.time_entry_id)
+        time_entry = await self.repository.get_time_entry(request.time_entry_id)
         if not time_entry or time_entry.user_id != user_id:
             raise ValueError("Time entry not found or access denied")
         
-        updated_entry = self.repository.end_break(request.time_entry_id)
+        updated_entry = await self.repository.end_break(request.time_entry_id)
         if not updated_entry:
             raise ValueError("Cannot end break. You may not be on break.")
         
@@ -362,7 +362,7 @@ class TimeclockService:
                         start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                         skip: int = 0, limit: int = 100) -> List[TimeEntryWithDetails]:
         """Get time entries with details."""
-        entries = self.repository.get_time_entries(user_id, job_site_id, start_date, end_date, skip, limit)
+        entries = await self.repository.get_time_entries(user_id, job_site_id, start_date, end_date, skip, limit)
         
         result = []
         for entry in entries:
@@ -377,12 +377,12 @@ class TimeclockService:
 
     async def approve_time_entry(self, time_entry_id: str, approved: bool, approved_by_id: str) -> Optional[TimeEntry]:
         """Approve or reject time entry."""
-        time_entry = self.repository.approve_time_entry(time_entry_id, approved_by_id, approved)
+        time_entry = await self.repository.approve_time_entry(time_entry_id, approved_by_id, approved)
         if not time_entry:
             return None
         
         # Create audit log
-        self.repository.create_audit_log(
+        await self.repository.create_audit_log(
             time_entry_id=time_entry_id,
             action="approve" if approved else "reject",
             old_values={"is_approved": not approved},
@@ -399,11 +399,11 @@ class TimeclockService:
         
         return TimeEntry.from_orm(time_entry)
 
-    def get_timeclock_stats(self) -> TimeclockStats:
+    async def get_timeclock_stats(self) -> TimeclockStats:
         """Get timeclock statistics."""
-        return self.repository.get_timeclock_stats()
+        return await self.repository.get_timeclock_stats()
 
-    def get_user_active_time_entry(self, user_id: str) -> Optional[TimeEntry]:
+    async def get_user_active_time_entry(self, user_id: str) -> Optional[TimeEntry]:
         """Get user's current active time entry."""
-        entry = self.repository.get_active_time_entry(user_id)
+        entry = await self.repository.get_active_time_entry(user_id)
         return TimeEntry.from_orm(entry) if entry else None

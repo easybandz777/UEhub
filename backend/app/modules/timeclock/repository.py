@@ -1,5 +1,5 @@
 """
-Timeclock repository.
+Timeclock repository - Fully async implementation.
 """
 
 import json
@@ -7,21 +7,22 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from decimal import Decimal
 
-from sqlalchemy import and_, desc, func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from .models import JobSite, TimeEntry, TimeEntryAudit
 from .schemas import JobSiteCreate, JobSiteUpdate, TimeclockStats
 
 
 class TimeclockRepository:
-    """Repository for timeclock operations."""
+    """Repository for timeclock operations - Fully async."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     # Job Site methods
-    def create_job_site(self, job_site_data: JobSiteCreate, created_by_id: str, qr_code_data: str) -> JobSite:
+    async def create_job_site(self, job_site_data: JobSiteCreate, created_by_id: str, qr_code_data: str) -> JobSite:
         """Create a new job site."""
         job_site = JobSite(
             **job_site_data.dict(),
@@ -29,30 +30,35 @@ class TimeclockRepository:
             qr_code_data=qr_code_data
         )
         self.db.add(job_site)
-        self.db.commit()
-        self.db.refresh(job_site)
+        await self.db.commit()
+        await self.db.refresh(job_site)
         return job_site
 
-    def get_job_site(self, job_site_id: str) -> Optional[JobSite]:
+    async def get_job_site(self, job_site_id: str) -> Optional[JobSite]:
         """Get job site by ID."""
-        return self.db.query(JobSite).filter(JobSite.id == job_site_id).first()
+        result = await self.db.execute(select(JobSite).where(JobSite.id == job_site_id))
+        return result.scalar_one_or_none()
 
-    def get_job_site_by_qr_code(self, qr_code_data: str) -> Optional[JobSite]:
+    async def get_job_site_by_qr_code(self, qr_code_data: str) -> Optional[JobSite]:
         """Get job site by QR code data."""
-        return self.db.query(JobSite).filter(
-            and_(JobSite.qr_code_data == qr_code_data, JobSite.is_active == True)
-        ).first()
+        result = await self.db.execute(
+            select(JobSite).where(
+                and_(JobSite.qr_code_data == qr_code_data, JobSite.is_active == True)
+            )
+        )
+        return result.scalar_one_or_none()
 
-    def get_job_sites(self, skip: int = 0, limit: int = 100, active_only: bool = True) -> List[JobSite]:
+    async def get_job_sites(self, skip: int = 0, limit: int = 100, active_only: bool = True) -> List[JobSite]:
         """Get all job sites."""
-        query = self.db.query(JobSite)
+        query = select(JobSite)
         if active_only:
-            query = query.filter(JobSite.is_active == True)
-        return query.offset(skip).limit(limit).all()
+            query = query.where(JobSite.is_active == True)
+        result = await self.db.execute(query.offset(skip).limit(limit))
+        return list(result.scalars().all())
 
-    def update_job_site(self, job_site_id: str, job_site_data: JobSiteUpdate) -> Optional[JobSite]:
+    async def update_job_site(self, job_site_id: str, job_site_data: JobSiteUpdate) -> Optional[JobSite]:
         """Update job site."""
-        job_site = self.get_job_site(job_site_id)
+        job_site = await self.get_job_site(job_site_id)
         if not job_site:
             return None
         
@@ -61,23 +67,23 @@ class TimeclockRepository:
             setattr(job_site, field, value)
         
         job_site.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(job_site)
+        await self.db.commit()
+        await self.db.refresh(job_site)
         return job_site
 
-    def delete_job_site(self, job_site_id: str) -> bool:
+    async def delete_job_site(self, job_site_id: str) -> bool:
         """Soft delete job site."""
-        job_site = self.get_job_site(job_site_id)
+        job_site = await self.get_job_site(job_site_id)
         if not job_site:
             return False
         
         job_site.is_active = False
         job_site.updated_at = datetime.utcnow()
-        self.db.commit()
+        await self.db.commit()
         return True
 
     # Time Entry methods
-    def create_time_entry(self, user_id: str, job_site_id: str, clock_in_time: datetime,
+    async def create_time_entry(self, user_id: str, job_site_id: str, clock_in_time: datetime,
                          location_lat: Optional[Decimal] = None, location_lng: Optional[Decimal] = None,
                          notes: Optional[str] = None) -> TimeEntry:
         """Create a new time entry (clock in)."""
@@ -90,28 +96,32 @@ class TimeclockRepository:
             notes=notes
         )
         self.db.add(time_entry)
-        self.db.commit()
-        self.db.refresh(time_entry)
+        await self.db.commit()
+        await self.db.refresh(time_entry)
         return time_entry
 
-    def get_time_entry(self, time_entry_id: str) -> Optional[TimeEntry]:
+    async def get_time_entry(self, time_entry_id: str) -> Optional[TimeEntry]:
         """Get time entry by ID."""
-        return self.db.query(TimeEntry).filter(TimeEntry.id == time_entry_id).first()
+        result = await self.db.execute(select(TimeEntry).where(TimeEntry.id == time_entry_id))
+        return result.scalar_one_or_none()
 
-    def get_active_time_entry(self, user_id: str) -> Optional[TimeEntry]:
+    async def get_active_time_entry(self, user_id: str) -> Optional[TimeEntry]:
         """Get user's active time entry (clocked in but not out)."""
-        return self.db.query(TimeEntry).filter(
-            and_(
-                TimeEntry.user_id == user_id,
-                TimeEntry.clock_out_time.is_(None)
+        result = await self.db.execute(
+            select(TimeEntry).where(
+                and_(
+                    TimeEntry.user_id == user_id,
+                    TimeEntry.clock_out_time.is_(None)
+                )
             )
-        ).first()
+        )
+        return result.scalar_one_or_none()
 
-    def clock_out(self, time_entry_id: str, clock_out_time: datetime,
+    async def clock_out(self, time_entry_id: str, clock_out_time: datetime,
                   location_lat: Optional[Decimal] = None, location_lng: Optional[Decimal] = None,
                   notes: Optional[str] = None) -> Optional[TimeEntry]:
         """Clock out a time entry."""
-        time_entry = self.get_time_entry(time_entry_id)
+        time_entry = await self.get_time_entry(time_entry_id)
         if not time_entry or time_entry.clock_out_time:
             return None
         
@@ -133,57 +143,58 @@ class TimeclockRepository:
         time_entry.break_hours = Decimal(str(break_seconds / 3600)) if break_seconds > 0 else None
         time_entry.updated_at = datetime.utcnow()
         
-        self.db.commit()
-        self.db.refresh(time_entry)
+        await self.db.commit()
+        await self.db.refresh(time_entry)
         return time_entry
 
-    def start_break(self, time_entry_id: str) -> Optional[TimeEntry]:
+    async def start_break(self, time_entry_id: str) -> Optional[TimeEntry]:
         """Start break for a time entry."""
-        time_entry = self.get_time_entry(time_entry_id)
+        time_entry = await self.get_time_entry(time_entry_id)
         if not time_entry or time_entry.clock_out_time or time_entry.break_start_time:
             return None
         
         time_entry.break_start_time = datetime.utcnow()
         time_entry.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(time_entry)
+        await self.db.commit()
+        await self.db.refresh(time_entry)
         return time_entry
 
-    def end_break(self, time_entry_id: str) -> Optional[TimeEntry]:
+    async def end_break(self, time_entry_id: str) -> Optional[TimeEntry]:
         """End break for a time entry."""
-        time_entry = self.get_time_entry(time_entry_id)
+        time_entry = await self.get_time_entry(time_entry_id)
         if not time_entry or time_entry.clock_out_time or not time_entry.break_start_time or time_entry.break_end_time:
             return None
         
         time_entry.break_end_time = datetime.utcnow()
         time_entry.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(time_entry)
+        await self.db.commit()
+        await self.db.refresh(time_entry)
         return time_entry
 
-    def get_time_entries(self, user_id: Optional[str] = None, job_site_id: Optional[str] = None,
+    async def get_time_entries(self, user_id: Optional[str] = None, job_site_id: Optional[str] = None,
                         start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                         skip: int = 0, limit: int = 100) -> List[TimeEntry]:
         """Get time entries with filters."""
-        query = self.db.query(TimeEntry).options(
-            joinedload(TimeEntry.job_site),
-            joinedload(TimeEntry.user)
+        query = select(TimeEntry).options(
+            selectinload(TimeEntry.job_site),
+            selectinload(TimeEntry.user)
         )
         
         if user_id:
-            query = query.filter(TimeEntry.user_id == user_id)
+            query = query.where(TimeEntry.user_id == user_id)
         if job_site_id:
-            query = query.filter(TimeEntry.job_site_id == job_site_id)
+            query = query.where(TimeEntry.job_site_id == job_site_id)
         if start_date:
-            query = query.filter(TimeEntry.clock_in_time >= start_date)
+            query = query.where(TimeEntry.clock_in_time >= start_date)
         if end_date:
-            query = query.filter(TimeEntry.clock_in_time <= end_date)
+            query = query.where(TimeEntry.clock_in_time <= end_date)
         
-        return query.order_by(desc(TimeEntry.clock_in_time)).offset(skip).limit(limit).all()
+        result = await self.db.execute(query.order_by(desc(TimeEntry.clock_in_time)).offset(skip).limit(limit))
+        return list(result.scalars().all())
 
-    def approve_time_entry(self, time_entry_id: str, approved_by_id: str, approved: bool) -> Optional[TimeEntry]:
+    async def approve_time_entry(self, time_entry_id: str, approved_by_id: str, approved: bool) -> Optional[TimeEntry]:
         """Approve or reject a time entry."""
-        time_entry = self.get_time_entry(time_entry_id)
+        time_entry = await self.get_time_entry(time_entry_id)
         if not time_entry:
             return None
         
@@ -192,47 +203,60 @@ class TimeclockRepository:
         time_entry.approved_at = datetime.utcnow()
         time_entry.updated_at = datetime.utcnow()
         
-        self.db.commit()
-        self.db.refresh(time_entry)
+        await self.db.commit()
+        await self.db.refresh(time_entry)
         return time_entry
 
-    def get_timeclock_stats(self) -> TimeclockStats:
+    async def get_timeclock_stats(self) -> TimeclockStats:
         """Get timeclock statistics."""
         today = datetime.utcnow().date()
         week_start = today - timedelta(days=today.weekday())
         
         # Count employees currently clocked in
-        clocked_in_count = self.db.query(TimeEntry).filter(
-            TimeEntry.clock_out_time.is_(None)
-        ).count()
+        result = await self.db.execute(
+            select(func.count(TimeEntry.id)).where(TimeEntry.clock_out_time.is_(None))
+        )
+        clocked_in_count = result.scalar() or 0
         
         # Count active job sites
-        active_job_sites = self.db.query(JobSite).filter(JobSite.is_active == True).count()
+        result = await self.db.execute(
+            select(func.count(JobSite.id)).where(JobSite.is_active == True)
+        )
+        active_job_sites = result.scalar() or 0
         
         # Total hours today
-        today_hours = self.db.query(func.sum(TimeEntry.total_hours)).filter(
-            and_(
-                TimeEntry.clock_in_time >= datetime.combine(today, datetime.min.time()),
-                TimeEntry.clock_in_time < datetime.combine(today + timedelta(days=1), datetime.min.time()),
-                TimeEntry.total_hours.isnot(None)
+        result = await self.db.execute(
+            select(func.sum(TimeEntry.total_hours)).where(
+                and_(
+                    TimeEntry.clock_in_time >= datetime.combine(today, datetime.min.time()),
+                    TimeEntry.clock_in_time < datetime.combine(today + timedelta(days=1), datetime.min.time()),
+                    TimeEntry.total_hours.isnot(None)
+                )
             )
-        ).scalar() or Decimal('0')
+        )
+        today_hours = result.scalar() or Decimal('0')
         
         # Total hours this week
-        week_hours = self.db.query(func.sum(TimeEntry.total_hours)).filter(
-            and_(
-                TimeEntry.clock_in_time >= datetime.combine(week_start, datetime.min.time()),
-                TimeEntry.total_hours.isnot(None)
+        result = await self.db.execute(
+            select(func.sum(TimeEntry.total_hours)).where(
+                and_(
+                    TimeEntry.clock_in_time >= datetime.combine(week_start, datetime.min.time()),
+                    TimeEntry.total_hours.isnot(None)
+                )
             )
-        ).scalar() or Decimal('0')
+        )
+        week_hours = result.scalar() or Decimal('0')
         
         # Pending approvals
-        pending_approvals = self.db.query(TimeEntry).filter(
-            and_(
-                TimeEntry.clock_out_time.isnot(None),
-                TimeEntry.is_approved == False
+        result = await self.db.execute(
+            select(func.count(TimeEntry.id)).where(
+                and_(
+                    TimeEntry.clock_out_time.isnot(None),
+                    TimeEntry.is_approved == False
+                )
             )
-        ).count()
+        )
+        pending_approvals = result.scalar() or 0
         
         return TimeclockStats(
             total_employees_clocked_in=clocked_in_count,
@@ -243,7 +267,7 @@ class TimeclockRepository:
         )
 
     # Audit methods
-    def create_audit_log(self, time_entry_id: str, action: str, old_values: dict, new_values: dict,
+    async def create_audit_log(self, time_entry_id: str, action: str, old_values: dict, new_values: dict,
                         performed_by_id: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None):
         """Create audit log entry."""
         audit = TimeEntryAudit(
@@ -256,4 +280,4 @@ class TimeclockRepository:
             user_agent=user_agent
         )
         self.db.add(audit)
-        self.db.commit()
+        await self.db.commit()

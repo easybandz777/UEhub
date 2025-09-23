@@ -6,10 +6,10 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.db import get_sync_db
-from ...core.security import get_current_user_sync, require_role, CurrentUser
+from ...core.db import get_db
+from ...core.security import get_current_user, require_role, CurrentUser
 from ..auth.models import User
 from .repository import TimeclockRepository
 from .service import TimeclockService
@@ -22,12 +22,12 @@ from .schemas import (
 router = APIRouter()
 
 
-def get_timeclock_repository(db: Session = Depends(get_sync_db)) -> TimeclockRepository:
+async def get_timeclock_repository(db: AsyncSession = Depends(get_db)) -> TimeclockRepository:
     """Get timeclock repository."""
     return TimeclockRepository(db)
 
 
-def get_timeclock_service(
+async def get_timeclock_service(
     repository: TimeclockRepository = Depends(get_timeclock_repository)
 ) -> TimeclockService:
     """Get timeclock service."""
@@ -54,7 +54,7 @@ async def get_job_sites(
     skip: int = 0,
     limit: int = 100,
     active_only: bool = True,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get all job sites."""
@@ -64,7 +64,7 @@ async def get_job_sites(
 @router.get("/job-sites/{job_site_id}", response_model=JobSite)
 async def get_job_site(
     job_site_id: str,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get job site by ID."""
@@ -117,7 +117,7 @@ async def delete_job_site(
 @router.post("/scan", response_model=QRCodeScanResult)
 async def scan_qr_code(
     qr_code_data: str,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Scan QR code and get available actions."""
@@ -128,7 +128,7 @@ async def scan_qr_code(
 @router.post("/clock-in", response_model=dict)
 async def clock_in(
     request: ClockInRequest,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service),
     http_request: Request = None
 ):
@@ -147,7 +147,7 @@ async def clock_in(
 @router.post("/clock-out", response_model=dict)
 async def clock_out(
     request: ClockOutRequest,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service),
     http_request: Request = None
 ):
@@ -166,7 +166,7 @@ async def clock_out(
 @router.post("/break", response_model=dict)
 async def manage_break(
     request: BreakRequest,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Start or end break."""
@@ -193,7 +193,7 @@ async def get_time_entries(
     end_date: Optional[datetime] = None,
     skip: int = 0,
     limit: int = 100,
-    current_user: CurrentUser = Depends(get_current_user_sync),
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get time entries. Regular users can only see their own entries."""
@@ -205,12 +205,12 @@ async def get_time_entries(
 
 
 @router.get("/time-entries/active", response_model=Optional[TimeEntry])
-def get_active_time_entry(
-    current_user: CurrentUser = Depends(get_current_user_sync),
+async def get_active_time_entry(
+    current_user: CurrentUser = Depends(get_current_user),
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get current user's active time entry."""
-    return service.get_user_active_time_entry(current_user.id)
+    return await service.get_user_active_time_entry(current_user.id)
 
 
 @router.post("/time-entries/{time_entry_id}/approve", response_model=TimeEntry)
