@@ -358,7 +358,7 @@ class TimeclockService:
         return TimeEntry.from_orm(updated_entry), "Break ended"
 
     # Admin methods
-    def get_time_entries(self, user_id: Optional[str] = None, job_site_id: Optional[str] = None,
+    async def get_time_entries(self, user_id: Optional[str] = None, job_site_id: Optional[str] = None,
                         start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                         skip: int = 0, limit: int = 100) -> List[TimeEntryWithDetails]:
         """Get time entries with details."""

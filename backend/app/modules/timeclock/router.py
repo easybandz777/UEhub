@@ -58,7 +58,7 @@ async def get_job_sites(
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get all job sites."""
-    return service.get_job_sites(skip, limit, active_only)
+    return await service.get_job_sites(skip, limit, active_only)
 
 
 @router.get("/job-sites/{job_site_id}", response_model=JobSite)
@@ -68,7 +68,7 @@ async def get_job_site(
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get job site by ID."""
-    job_site = service.get_job_site(job_site_id)
+    job_site = await service.get_job_site(job_site_id)
     if not job_site:
         raise HTTPException(status_code=404, detail="Job site not found")
     return job_site
@@ -81,7 +81,7 @@ async def get_job_site_with_qr(
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get job site with QR code image (admin only)."""
-    job_site = service.get_job_site_with_qr(job_site_id)
+    job_site = await service.get_job_site_with_qr(job_site_id)
     if not job_site:
         raise HTTPException(status_code=404, detail="Job site not found")
     return job_site
@@ -201,7 +201,7 @@ async def get_time_entries(
     if current_user.role == "employee":
         user_id = current_user.id
     
-    return service.get_time_entries(user_id, job_site_id, start_date, end_date, skip, limit)
+    return await service.get_time_entries(user_id, job_site_id, start_date, end_date, skip, limit)
 
 
 @router.get("/time-entries/active", response_model=Optional[TimeEntry])
@@ -234,7 +234,7 @@ async def get_timeclock_stats(
     service: TimeclockService = Depends(get_timeclock_service)
 ):
     """Get timeclock statistics."""
-    return service.get_timeclock_stats()
+    return await service.get_timeclock_stats()
 
 
 # Health check
