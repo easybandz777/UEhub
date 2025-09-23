@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     """Base user schema."""
     email: EmailStr
     name: str = Field(..., min_length=1, max_length=100)
-    role: str = Field(..., pattern="^(superadmin|admin|employee)$")
+    role: str = Field(..., pattern="^(superadmin|admin|manager|employee|worker)$")
 
 
 class UserCreate(UserBase):

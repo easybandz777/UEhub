@@ -83,6 +83,9 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
 
 def verify_token(token: str) -> TokenData:
     """Verify and decode a JWT token."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         payload = jwt.decode(
             token, 
@@ -95,7 +98,10 @@ def verify_token(token: str) -> TokenData:
         role: str = payload.get("role")
         exp: float = payload.get("exp")
         
+        logger.info(f"Token validation - user_id: {user_id}, email: {email}, role: {role}")
+        
         if user_id is None or email is None or role is None:
+            logger.error(f"Invalid token payload - missing fields: user_id={user_id}, email={email}, role={role}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token payload",
@@ -110,7 +116,8 @@ def verify_token(token: str) -> TokenData:
             payload=payload
         )
     
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT validation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
